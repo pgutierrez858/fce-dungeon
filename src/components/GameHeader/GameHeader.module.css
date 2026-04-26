@@ -1,0 +1,96 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(0.9rem, 3vw, 1.2rem);
+  color: var(--gold2);
+  text-shadow: 0 0 12px rgba(201,162,39,0.4);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.roomTag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--aged);
+  background: var(--stone2);
+  border: 1px solid var(--border-rune);
+  border-radius: 3px;
+  padding: 3px 10px;
+}
+
+.codexBtn {
+  font-family: 'Cinzel', serif;
+  background: transparent;
+  color: var(--aged);
+  border: 1px solid var(--border-rune);
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.codexBtn:hover { border-color: var(--gold); color: var(--gold2); }
+
+.restartBtn {
+  font-family: 'Cinzel', serif;
+  background: transparent;
+  color: var(--aged);
+  border: 1px solid var(--border-rune);
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.restartBtn:hover { border-color: var(--ember); color: var(--ember2); }
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeIn 0.15s ease both;
+}
+
+.confirmText {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  color: var(--ember2);
+}
+
+.confirmYes, .confirmNo {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: background 0.15s;
+}
+
+.confirmYes {
+  background: var(--ember);
+  color: #fff;
+  border-color: var(--ember2);
+}
+.confirmYes:hover { background: var(--ember2); }
+
+.confirmNo {
+  background: transparent;
+  color: var(--aged);
+  border-color: var(--border-rune);
+}
+.confirmNo:hover { border-color: var(--aged); color: var(--parchment); }

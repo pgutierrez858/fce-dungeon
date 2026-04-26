@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --stone:     #1a1614;
+  --stone2:    #231e1b;
+  --stone3:    #2e2825;
+  --parchment: #f2e8d0;
+  --parchment2:#e8ddc0;
+  --aged:      #c9b99a;
+  --gold:      #c9a227;
+  --gold2:     #e8c84a;
+  --ember:     #c0392b;
+  --ember2:    #e74c3c;
+  --forest:    #27ae60;
+  --rune:      #4a90a4;
+  --t1:  #1a3a4a; --t1b: #4a90c4;
+  --t2:  #1a3a1a; --t2b: #4aaa4a;
+  --t3:  #3a1a3a; --t3b: #aa4aaa;
+  --t4:  #3a2a0a; --t4b: #c9a227;
+  --tb:  #3a0000; --tbb: #cc3333;
+  --tf:  #1a1a00; --tfb: #e8c84a;
+  --shop:#2a4a2a; --shopb:#4aaa4a;
+  --border-rune: #6b4c2a;
+  --radius: 6px;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'EB Garamond', Georgia, serif;
+  background: #0d0b09;
+  color: var(--parchment);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  border: none;
+  outline: none;
+}
+
+input, textarea {
+  font-family: 'EB Garamond', Georgia, serif;
+  outline: none;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,162,39,0); }
+  50%       { box-shadow: 0 0 14px 4px rgba(201,162,39,0.35); }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-ember {
+  0%, 100% { text-shadow: 0 0 4px rgba(231,76,60,0.4); }
+  50%      { text-shadow: 0 0 16px rgba(231,76,60,0.9); }
+}
+
+@keyframes glow-gold {
+  0%, 100% { text-shadow: 0 0 6px rgba(201,162,39,0.3); }
+  50%      { text-shadow: 0 0 20px rgba(201,162,39,0.8); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes die-roll {
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(90deg) scale(0.9); }
+  50%  { transform: rotate(180deg) scale(1.1); }
+  75%  { transform: rotate(270deg) scale(0.9); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.animate-fade-in  { animation: fadeIn  0.3s ease both; }
+.animate-pop-in   { animation: pop-in  0.35s ease both; }
+.animate-slide-up { animation: slide-up 0.4s ease both; }
+.animate-shake    { animation: shake   0.4s ease; }
+.animate-float    { animation: float   3s ease-in-out infinite; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--stone); }
+::-webkit-scrollbar-thumb  { background: var(--border-rune); border-radius: 3px; }

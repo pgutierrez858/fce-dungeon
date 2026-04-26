@@ -1,0 +1,79 @@
+.screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.card {
+  background: #08101a;
+  border: 2px solid var(--rune);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(74,144,164,0.2);
+}
+
+.ico {
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #80c0e0;
+}
+
+.text {
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--aged);
+  line-height: 1.6;
+}
+
+.effects {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  background: var(--stone);
+  border: 1px solid var(--border-rune);
+  border-radius: 4px;
+  padding: 10px 14px;
+}
+
+.effect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.effectIcon { font-size: 1rem; }
+.effectVal  { color: var(--parchment2); font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; }
+.gain       { color: var(--t2b); font-weight: 600; }
+
+.restBtn {
+  font-family: 'Cinzel', serif;
+  background: var(--rune);
+  color: var(--parchment);
+  border: none;
+  padding: 11px 28px;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s, transform 0.1s;
+}
+.restBtn:hover { background: #5aa0b4; transform: translateY(-1px); }

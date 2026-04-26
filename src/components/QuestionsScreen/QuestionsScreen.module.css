@@ -1,0 +1,173 @@
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(74,144,164,0.10) 0%, transparent 60%),
+    #0d0b09;
+  padding: 16px;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  color: var(--gold2);
+  text-shadow: 0 0 16px rgba(201,162,39,0.4);
+}
+
+.backBtn {
+  font-family: 'Cinzel', serif;
+  background: transparent;
+  color: var(--aged);
+  border: 1.5px solid var(--border-rune);
+  padding: 7px 16px;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.backBtn:hover { color: var(--parchment); border-color: var(--parchment2); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-rune);
+  background: var(--stone2);
+  color: var(--aged);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--parchment); border-color: var(--parchment2); }
+.tabActive { background: var(--stone); color: var(--parchment); border-color: var(--gold) !important; }
+
+/* Tab content */
+.tabStats {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--aged);
+  padding: 4px 0 8px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tabStats span { color: var(--parchment2); }
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.67rem;
+  color: var(--aged);
+  align-items: center;
+}
+
+.legendItem { display: flex; align-items: center; gap: 4px; }
+
+/* Cards grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.card {
+  background: var(--stone2);
+  border: 1.5px solid var(--border-rune);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 90px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cardId {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--aged);
+  opacity: 0.6;
+}
+
+.badge {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.cardSentence {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.82rem;
+  color: var(--parchment2);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.cardStem {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+.cardStats {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--aged);
+  display: flex;
+  gap: 8px;
+}
+
+.cardStats .correct { color: #5a9a5a; }
+.cardStats .incorrect { color: var(--ember); }
+
+/* Mystery card */
+.mystery {
+  border-style: dashed;
+  opacity: 0.45;
+}
+
+.mysteryText {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  color: var(--aged);
+  letter-spacing: 0.4em;
+  text-align: center;
+  margin: auto;
+}
+
+.mysteryHint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--aged);
+  text-align: center;
+  opacity: 0.5;
+}

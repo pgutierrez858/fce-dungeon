@@ -1,0 +1,148 @@
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.floorBlock { display: flex; flex-direction: column; gap: 4px; }
+
+.floorLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-align: center;
+  padding: 3px 0;
+  border-top: 1px solid var(--border-rune);
+  border-bottom: 1px solid var(--border-rune);
+}
+
+.floorRow {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.floorRow.reversed { flex-direction: row-reverse; }
+
+.roomWrapper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.connector {
+  color: var(--aged);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  padding: 0 1px;
+}
+
+.room {
+  flex: 1;
+  min-width: 58px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 3px;
+  border: 1.5px solid #4a3f35;
+  border-radius: 3px;
+  background: var(--stone3);
+  color: var(--parchment2);
+  font-family: 'EB Garamond', serif;
+  font-size: 0.55rem;
+  line-height: 1.25;
+  gap: 1px;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.room:disabled { cursor: default; }
+
+.room.enterable {
+  cursor: pointer;
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+.room.enterable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(201,162,39,0.4);
+}
+
+.room.cleared {
+  opacity: 0.55;
+}
+
+.room.cleared::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+}
+
+.room.current { outline: 2px solid var(--gold); outline-offset: 1px; }
+.room.locked  { opacity: 0.35; }
+
+.roomNumber {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--aged);
+}
+
+.roomIcon  { font-size: 1rem; }
+.roomLabel { font-size: 0.52rem; color: var(--parchment2); }
+
+.youAreHere {
+  font-family: 'Cinzel', serif;
+  font-size: 0.44rem;
+  color: var(--gold2);
+  letter-spacing: 0.08em;
+  animation: glow-gold 1.5s ease-in-out infinite;
+}
+
+/* Room type colours */
+.rStart { background: #0e1e0e; border-color: var(--forest); }
+.rT1    { background: var(--t1); border-color: var(--t1b); }
+.rT2    { background: var(--t2); border-color: var(--t2b); }
+.rT3    { background: var(--t3); border-color: var(--t3b); }
+.rT4    { background: var(--t4); border-color: var(--t4b); }
+.rBoss  { background: var(--tb); border-color: var(--tbb); border-width: 2px; }
+.rFinal { background: var(--tf); border-color: var(--tfb); border-width: 2.5px; }
+.rRest  { background: #1a1a2a; border-color: var(--rune); }
+.rShop  { background: var(--shop); border-color: var(--shopb); border-width: 2px; }
+
+/* Legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-rune);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  color: var(--aged);
+}
+
+.legendBox {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1.5px solid;
+  flex-shrink: 0;
+}

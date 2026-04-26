@@ -1,0 +1,138 @@
+.hud {
+  background: var(--stone2);
+  border: 1.5px solid var(--border-rune);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.statBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.statIcon { font-size: 1rem; }
+
+.barTrack {
+  flex: 1;
+  height: 10px;
+  background: var(--stone);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #3a3530;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.statValue {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  min-width: 46px;
+  text-align: right;
+}
+
+.numbers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xp {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--t1b);
+  font-size: 0.78rem;
+}
+
+.rank {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  color: var(--aged);
+  letter-spacing: 0.06em;
+}
+
+.gold {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--gold2);
+  font-size: 0.82rem;
+}
+
+.effects {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.effectBadge {
+  background: var(--stone);
+  border: 1px solid var(--border-rune);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: var(--t1b);
+}
+
+.inventory {
+  border-top: 1px solid var(--border-rune);
+  padding-top: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.invLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--aged);
+  padding-top: 4px;
+}
+
+.items {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.itemBtn {
+  background: var(--stone);
+  border: 1.5px solid var(--border-rune);
+  border-radius: 4px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--parchment2);
+  font-size: 0.72rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.itemBtn:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: var(--stone3);
+}
+
+.itemBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.itemIco { font-size: 1rem; }
+.itemName { font-size: 0.68rem; }

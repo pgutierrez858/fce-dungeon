@@ -1,0 +1,49 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  animation: fadeIn 0.25s ease both;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(0.9rem, 3vw, 1.2rem);
+  color: var(--gold2);
+  text-shadow: 0 0 12px rgba(201,162,39,0.4);
+}
+
+.roomTag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--aged);
+  background: var(--stone2);
+  border: 1px solid var(--border-rune);
+  border-radius: 3px;
+  padding: 3px 10px;
+}
+
+.bossNotice {
+  background: var(--tb);
+  border: 1.5px solid var(--tbb);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  color: #ff9090;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: glow-ember 2s ease-in-out infinite;
+}

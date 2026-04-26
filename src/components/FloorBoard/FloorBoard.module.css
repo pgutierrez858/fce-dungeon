@@ -1,0 +1,90 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 6), 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-rune);
+  background: var(--stone2);
+  cursor: default;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s;
+  overflow: hidden;
+  padding: 4px;
+}
+
+/* ---- type tints ---- */
+.type-start   { border-color: #4a8a60; background: rgba(74,138,96,0.15); }
+.type-monster { border-color: var(--ember); background: rgba(180,60,30,0.12); }
+.type-boss    { border-color: #9b30d0; background: rgba(100,0,160,0.18); }
+.type-chest   { border-color: var(--gold); background: rgba(201,162,39,0.12); }
+.type-rest    { border-color: #3a8aaa; background: rgba(40,100,160,0.12); }
+.type-shop    { border-color: #7a9a5a; background: rgba(80,140,60,0.12); }
+
+/* ---- states ---- */
+.cleared {
+  opacity: 0.42;
+  filter: saturate(0.4);
+  border-style: dashed;
+}
+
+.player {
+  border-color: var(--parchment) !important;
+  background: rgba(220,195,140,0.2) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: 0 0 10px rgba(220,195,140,0.35);
+}
+
+@keyframes adjacentGlow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(220,195,140,0.20), inset 0 0 4px rgba(220,195,140,0.06); }
+  50%       { box-shadow: 0 0 12px 4px rgba(220,195,140,0.55), inset 0 0 8px rgba(220,195,140,0.14); }
+}
+
+.adjacent {
+  cursor: pointer;
+  opacity: 1 !important;
+  filter: none !important;
+  animation: adjacentGlow 1.5s ease-in-out infinite;
+}
+.adjacent:hover {
+  transform: translateY(-2px);
+  animation: none;
+  box-shadow: 0 0 18px 6px rgba(220,195,140,0.65), inset 0 0 10px rgba(220,195,140,0.18);
+}
+
+/* ---- inner ---- */
+.playerDot {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 0.5rem;
+  color: var(--parchment);
+  line-height: 1;
+}
+
+.tileIcon {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  line-height: 1;
+}
+
+.tileDetail {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.42rem, 1.2vw, 0.6rem);
+  color: var(--aged);
+  text-align: center;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
