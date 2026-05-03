@@ -77,3 +77,126 @@
   transition: background 0.15s, transform 0.1s;
 }
 .restBtn:hover { background: #5aa0b4; transform: translateY(-1px); }
+
+/* ── Command upgrade section ─────────────────────────────────── */
+.upgradeSection {
+  width: 100%;
+  background: var(--stone);
+  border: 1px solid var(--border-rune);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.upgradeTitle {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  color: var(--gold2);
+  font-weight: 700;
+  margin: 0;
+}
+
+.upgradeHint {
+  font-size: 0.68rem;
+  color: var(--aged);
+  font-style: italic;
+  margin: 0;
+}
+
+.xpDisplay {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.cmdList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmdRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--stone2);
+  border: 1px solid var(--border-rune);
+  border-radius: 4px;
+  padding: 8px 10px;
+  transition: border-color 0.15s;
+}
+.cmdRow:hover { border-color: var(--gold); }
+.cmdRowDim { opacity: 0.5; }
+
+.cmdInfo { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.cmdRowHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmdRowName {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--parchment);
+}
+
+.cmdRowType {
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.cmdRowEffects {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cmdRowLabel {
+  font-size: 0.6rem;
+  color: var(--aged);
+}
+
+.arrow {
+  font-size: 0.7rem;
+  color: var(--aged);
+  margin: 0 2px;
+}
+
+.effAtk { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; padding: 1px 4px; border-radius: 2px; background: rgba(200,80,40,0.25); color: var(--ember2); }
+.effBlk { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; padding: 1px 4px; border-radius: 2px; background: rgba(60,120,200,0.2); color: #8ab4e8; }
+.effStr { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; padding: 1px 4px; border-radius: 2px; background: rgba(200,150,30,0.25); color: var(--gold2); }
+
+.upgradeBtn {
+  font-family: 'Cinzel', serif;
+  background: var(--gold);
+  color: var(--stone);
+  border: none;
+  padding: 6px 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+.upgradeBtn:hover:not(:disabled) { background: var(--gold2); transform: translateY(-1px); }
+.upgradeBtn:disabled { cursor: not-allowed; }
+.upgradeBtnDim { background: var(--stone3) !important; color: var(--aged) !important; }
+
+.allUpgraded {
+  font-size: 0.72rem;
+  color: var(--t2b);
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}

@@ -1,20 +1,37 @@
+import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { getXpRank } from '../../engine/combat';
+import type { InventoryItem } from '../../types';
+import { MAX_INVENTORY } from '../../types';
 import styles from './PlayerHUD.module.css';
 
 export function PlayerHUD() {
-  const { player, useItem, phase } = useGameStore();
+  const { player, useItem, dropItem, phase } = useGameStore();
   const { hp, maxHp, xp, gold, inventory, activeEffects } = player;
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+
+  const slots = Array.from({ length: MAX_INVENTORY }, (_, i) => inventory[i] ?? null);
+
+  function handleUse() {
+    if (!selectedItem) return;
+    useItem(selectedItem.instanceId);
+    setSelectedItem(null);
+  }
+
+  function handleDrop() {
+    if (!selectedItem) return;
+    dropItem(selectedItem.instanceId);
+    setSelectedItem(null);
+  }
+
+  const isUsable = selectedItem
+    ? !(selectedItem.id === 'i11' && phase === 'combat')
+    : false;
 
   return (
     <div className={styles.hud}>
       <div className={styles.stats}>
-        <StatBar
-          icon="❤"
-          value={hp}
-          max={maxHp}
-          color="var(--ember2)"
-        />
+        <StatBar icon="❤" value={hp} max={maxHp} color="var(--ember2)" />
         <div className={styles.numbers}>
           <span className={styles.xp}>✦ {xp} XP</span>
           <span className={styles.rank}>{getXpRank(xp)}</span>
@@ -28,28 +45,56 @@ export function PlayerHUD() {
             <span key={i} className={styles.effectBadge}>
               {eff.kind === 'shield' ? `🛡 Shield ×${(eff as any).charges}` :
                eff.kind === 'skip'   ? `📜 Skip ×${(eff as any).charges}` :
-               '🔮 Swap'}
+               `🔮 Swap ×${(eff as any).charges}`}
             </span>
           ))}
         </div>
       )}
 
-      {inventory.length > 0 && (
-        <div className={styles.inventory}>
-          <span className={styles.invLabel}>🎒 Bag</span>
-          <div className={styles.items}>
-            {inventory.map(item => (
-              <button
-                key={item.instanceId}
-                className={styles.itemBtn}
-                title={`${item.name}: ${item.effect}`}
-                onClick={() => useItem(item.instanceId)}
-                disabled={item.id === 'i11' && phase === 'combat'}
-              >
-                <span className={styles.itemIco}>{item.ico}</span>
-                <span className={styles.itemName}>{item.name}</span>
+      <div className={styles.inventory}>
+        <span className={styles.invLabel}>🎒 {inventory.length}/{MAX_INVENTORY}</span>
+        <div className={styles.slots}>
+          {slots.map((item, i) => (
+            <button
+              key={i}
+              className={`${styles.slot} ${item ? styles.slotFilled : styles.slotEmpty}`}
+              onClick={() => item && setSelectedItem(item)}
+              disabled={!item}
+              title={item ? `${item.name}: ${item.effect}` : 'Empty slot'}
+            >
+              {item ? (
+                <>
+                  <span className={styles.slotIco}>{item.ico}</span>
+                  <span className={styles.slotName}>{item.name}</span>
+                </>
+              ) : (
+                <span className={styles.emptySlot}>—</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Item action modal */}
+      {selectedItem && (
+        <div className={styles.modalBackdrop} onClick={() => setSelectedItem(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <span className={styles.modalIco}>{selectedItem.ico}</span>
+              <div>
+                <div className={styles.modalName}>{selectedItem.name}</div>
+                <div className={styles.modalType}>{selectedItem.type}</div>
+              </div>
+            </div>
+            <p className={styles.modalEffect}>{selectedItem.effect}</p>
+            <div className={styles.modalActions}>
+              <button className={styles.useBtn} onClick={handleUse} disabled={!isUsable}
+                title={!isUsable ? 'Cannot use this item here' : undefined}>
+                ✨ Use
               </button>
-            ))}
+              <button className={styles.dropBtn} onClick={handleDrop}>🗑 Drop</button>
+            </div>
+            {!isUsable && <p className={styles.modalHint}>Cannot use outside of camp.</p>}
           </div>
         </div>
       )}
@@ -57,12 +102,7 @@ export function PlayerHUD() {
   );
 }
 
-interface StatBarProps {
-  icon: string;
-  value: number;
-  max: number;
-  color: string;
-}
+interface StatBarProps { icon: string; value: number; max: number; color: string; }
 
 function StatBar({ icon, value, max, color }: StatBarProps) {
   const pct = max > 0 ? (value / max) * 100 : 0;
@@ -70,14 +110,9 @@ function StatBar({ icon, value, max, color }: StatBarProps) {
     <div className={styles.statBar}>
       <span className={styles.statIcon}>{icon}</span>
       <div className={styles.barTrack}>
-        <div
-          className={styles.barFill}
-          style={{ width: `${pct}%`, background: color }}
-        />
+        <div className={styles.barFill} style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className={styles.statValue} style={{ color }}>
-        {value}/{max}
-      </span>
+      <span className={styles.statValue} style={{ color }}>{value}/{max}</span>
     </div>
   );
 }

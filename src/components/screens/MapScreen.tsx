@@ -5,10 +5,10 @@ import { GameHeader } from '../GameHeader/GameHeader';
 import styles from './MapScreen.module.css';
 
 export function MapScreen() {
-  const { currentFloor, playerPos, floorBoard, descendFloor } = useGameStore();
+  const { currentFloor, playerNodeId, floorBoard, descendFloor } = useGameStore();
 
-  const currentTile = floorBoard?.tiles[playerPos.row]?.[playerPos.col];
-  const onClearedBoss = currentTile?.type === 'boss' && currentTile.cleared;
+  const currentNode = floorBoard?.nodes.find(n => n.id === playerNodeId);
+  const onClearedBoss = currentNode?.type === 'boss' && currentNode.cleared;
   const canDescend = onClearedBoss && currentFloor < 5;
 
   return (

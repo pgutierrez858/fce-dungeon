@@ -1,5 +1,6 @@
 import { useGameStore } from '../../store/gameStore';
 import { getItemById } from '../../data/items';
+import { MAX_INVENTORY } from '../../types';
 import styles from './ShopScreen.module.css';
 
 export function ShopScreen() {
@@ -7,6 +8,7 @@ export function ShopScreen() {
   if (!shopState) return null;
 
   const { itemIds, purchased } = shopState;
+  const inventoryFull = player.inventory.length >= MAX_INVENTORY;
 
   return (
     <div className={`${styles.screen} animate-fade-in`}>
@@ -16,12 +18,19 @@ export function ShopScreen() {
         <span className={styles.gold}>🪙 {player.gold} Gold</span>
       </div>
 
+      {inventoryFull && (
+        <p className={styles.fullBanner}>
+          ⚠ Bag is full ({MAX_INVENTORY}/{MAX_INVENTORY}) — drop an item before buying.
+        </p>
+      )}
+
       <div className={styles.items}>
         {itemIds.map(id => {
           const item = getItemById(id);
           if (!item) return null;
           const isBought  = purchased.includes(id);
           const canAfford = player.gold >= item.cost;
+          const canBuy    = canAfford && !inventoryFull;
 
           return (
             <div key={id} className={`${styles.item} ${isBought ? styles.sold : ''}`}>
@@ -39,9 +48,10 @@ export function ShopScreen() {
                   <button
                     className={styles.buyBtn}
                     onClick={() => buyItem(id)}
-                    disabled={!canAfford}
+                    disabled={!canBuy}
+                    title={!canAfford ? 'Not enough gold' : inventoryFull ? 'Bag full' : undefined}
                   >
-                    {canAfford ? 'Buy' : 'Need Gold'}
+                    {!canAfford ? 'Need Gold' : inventoryFull ? 'Bag Full' : 'Buy'}
                   </button>
                 )}
               </div>

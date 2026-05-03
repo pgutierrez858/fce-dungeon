@@ -1,7 +1,7 @@
 import type { Question, QuestionType } from '../../types';
 import { PART1 } from './part1';
 import { PART2 } from './part2';
-import { PART3 } from './part3';
+import { PART3_ALL as PART3 } from './part3';
 import { PART4 } from './part4';
 
 export function getQuestionsForType(type: QuestionType): Question[] {

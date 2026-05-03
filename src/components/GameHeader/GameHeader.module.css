@@ -42,7 +42,8 @@
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-.codexBtn:hover { border-color: var(--gold); color: var(--gold2); }
+.codexBtn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold2); }
+.codexBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .restartBtn {
   font-family: 'Cinzel', serif;

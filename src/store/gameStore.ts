@@ -7,89 +7,95 @@ import type {
   CombatPhase,
   QuestionType,
   FloorBoard,
+  GraphNode,
   InventoryItem,
-  ActiveEffect,
+  Command,
 } from '../types';
+import { MAX_INVENTORY, MAX_COMMANDS, MAX_ENERGY } from '../types';
 import { generateFloor } from '../data/floorGenerator';
 import { getItemById } from '../data/items';
 import { getRandomRest } from '../data/rests';
+import { makeStartingCommands, drawCommandChoices } from '../data/commands';
 import {
   drawQuestion,
   markDiscovered,
   recordAnswer,
-  getBossQuestionType,
   checkAnswer,
 } from '../engine/questions';
-import { rollDie, clamp } from '../engine/combat';
+import {
+  clamp,
+  resolveEnemyAction,
+  applyEnemyAttack,
+  consumeSkip,
+  consumeSwap,
+  getShieldCharges,
+  consumeShield,
+  hasEffect,
+} from '../engine/combat';
 import { sfx } from '../engine/sfx';
 
 let instanceCounter = 0;
-function makeInstanceId(): string {
-  return `item-${++instanceCounter}`;
+function makeInstanceId(): string { return `item-${++instanceCounter}`; }
+
+function markNodeCleared(board: FloorBoard, nodeId: string): FloorBoard {
+  return { ...board, nodes: board.nodes.map(n => n.id === nodeId ? { ...n, cleared: true } : n) };
 }
 
-function hasSwap(effects: ActiveEffect[]): boolean {
-  return effects.some(e => e.kind === 'swap');
-}
-
-function consumeSwap(effects: ActiveEffect[]): ActiveEffect[] {
-  const idx = effects.findIndex(e => e.kind === 'swap');
-  if (idx === -1) return effects;
-  const sw = effects[idx] as { kind: 'swap'; charges: number };
-  return sw.charges <= 1
-    ? effects.filter((_, i) => i !== idx)
-    : effects.map((e, i) => i === idx ? { kind: 'swap' as const, charges: sw.charges - 1 } : e);
-}
-
-function markTileCleared(board: FloorBoard, row: number, col: number): FloorBoard {
-  return {
-    ...board,
-    tiles: board.tiles.map((r, ri) =>
-      ri === row
-        ? r.map((t, ci) => (ci === col ? { ...t, cleared: true } : t))
-        : r
-    ),
-  };
+function getNode(board: FloorBoard, nodeId: string): GraphNode | undefined {
+  return board.nodes.find(n => n.id === nodeId);
 }
 
 const INITIAL_PLAYER: PlayerState = {
-  hp: 20,
-  maxHp: 20,
-  xp: 0,
-  gold: 0,
-  inventory: [],
-  activeEffects: [],
+  hp: 60, maxHp: 60, xp: 0, gold: 0,
+  inventory: [], activeEffects: [],
+  commands: [],
 };
 
 interface GameStore extends GameState {
-  startGame: () => void;
-  moveToTile: (row: number, col: number) => void;
-  collectChest: () => void;
-  descendFloor: () => void;
+  startGame:        () => void;
+  moveToNode:       (nodeId: string) => void;
+  collectChest:     () => void;
+  abandonChest:     () => void;
+  descendFloor:     () => void;
 
-  rollForQuestion: () => void;
-  pickSwapType: (qType: QuestionType) => void;
-  submitAnswer: (answer: string) => void;
-  skipQuestion: () => void;
-  acknowledgeResult: () => void;
+  // Combat — player turn
+  selectCommand:    (commandId: string) => void;
+  submitAnswer:     (answer: string) => void;
+  skipQuestion:     () => void;
+  swapQuestionType: (qType: QuestionType) => void;
+  acknowledgeResult:() => void;
+  endTurn:          () => void;
 
-  buyItem: (itemId: string) => void;
+  // Combat — post-enemy-turn ack
+  acknowledgeEnemyTurn: () => void;
+
+  // Combat — command choice after victory
+  pickCommandChoice:  (index: number) => void;
+  skipCommandChoice:  () => void;
+  forgetCommand:      (commandId: string, pickIndex: number) => void;
+  acknowledgeVictory: () => void;
+
+  // Rest
+  upgradeCommand: (commandId: string) => void;
+  takeRest:       () => void;
+
+  // Shop
+  buyItem:   (itemId: string) => void;
   leaveShop: () => void;
 
-  takeRest: () => void;
+  // Inventory
+  useItem:  (instanceId: string) => void;
+  dropItem: (instanceId: string) => void;
 
-  useItem: (instanceId: string) => void;
-
-  openCodex: () => void;
+  openCodex:  () => void;
   closeCodex: () => void;
-
-  resetGame: () => void;
+  resetGame:  () => void;
 }
 
 const INITIAL_GAME_STATE: Omit<GameState, 'questionProgress'> = {
   phase: 'title',
   currentFloor: 1,
-  playerPos: { row: 0, col: 0 },
+  playerNodeId: '',
   floorBoard: null,
   shopPurchases: {},
   player: { ...INITIAL_PLAYER },
@@ -99,101 +105,484 @@ const INITIAL_GAME_STATE: Omit<GameState, 'questionProgress'> = {
   currentChestItemId: null,
 };
 
+function makeCombatStart(enemy: Parameters<typeof resolveEnemyAction>[0]['enemy']): CombatState {
+  return {
+    enemy,
+    enemyHp: enemy.maxHp,
+    enemyBlock: 0,
+    enemyStrength: 0,
+    enemySequenceIndex: 0,
+    playerBlock: 0,
+    playerStrength: 0,
+    energy: MAX_ENERGY,
+    usedCommandIds: [],
+    currentQuestion: null,
+    currentQuestionType: null,
+    pendingCommand: null,
+    phase: 'player-turn',
+    lastAnswerCorrect: null,
+    commandChoices: null,
+    lastDieRoll: null,
+    log: [`⚔ ${enemy.name} appears! (HP: ${enemy.maxHp})`],
+  };
+}
+
 export const useGameStore = create<GameStore>()(persist((set, get) => ({
   ...INITIAL_GAME_STATE,
   questionProgress: {},
 
+  // ── Game start ───────────────────────────────────────────────
+
   startGame: () => {
     const board = generateFloor(1);
+    const startNode = board.nodes.find(n => n.type === 'start')!;
     const { questionProgress } = get();
     set({
       ...INITIAL_GAME_STATE,
       phase: 'map',
       currentFloor: 1,
-      playerPos: { row: 0, col: 0 },
+      playerNodeId: startNode.id,
       floorBoard: board,
-      player: { ...INITIAL_PLAYER },
+      player: { ...INITIAL_PLAYER, commands: makeStartingCommands() },
       questionProgress,
     });
   },
 
-  moveToTile: (row: number, col: number) => {
-    const { playerPos, floorBoard, shopPurchases, questionProgress, player } = get();
+  // ── Navigation ───────────────────────────────────────────────
+
+  moveToNode: (nodeId: string) => {
+    const { playerNodeId, floorBoard, shopPurchases } = get();
     if (!floorBoard) return;
 
-    const dr = Math.abs(row - playerPos.row);
-    const dc = Math.abs(col - playerPos.col);
-    if (dr + dc !== 1) return;
+    const currentNode = getNode(floorBoard, playerNodeId);
+    if (!currentNode?.connections.includes(nodeId)) return;
 
-    const tile = floorBoard.tiles[row][col];
-    set({ playerPos: { row, col } });
+    const node = getNode(floorBoard, nodeId);
+    if (!node) return;
+
+    set({ playerNodeId: nodeId });
     sfx('move');
 
-    if (tile.type === 'start') return;
+    if (node.type === 'start') return;
 
-    if ((tile.type === 'monster' || tile.type === 'boss') && !tile.cleared) {
-      if (tile.type === 'boss') sfx('boss');
-      const enemy = tile.enemy!;
-      const isBossMultiType = enemy.bossTypes && enemy.bossTypes.length > 1;
-      const initialPhase: CombatPhase = isBossMultiType ? 'rolling' : 'question';
-
-      const baseCombat: CombatState = {
-        enemy,
-        enemyHp: enemy.maxHp,
-        currentQuestion: null,
-        currentQuestionType: null,
-        diceRoll: null,
-        phase: initialPhase,
-        lastAnswerCorrect: null,
-        log: [`⚔ ${enemy.name} appears! (HP: ${enemy.maxHp}, ATK: ${enemy.atk})`],
-      };
-
-      if (initialPhase === 'question') {
-        const qType = (enemy.bossTypes?.[0] ?? enemy.type) as QuestionType;
-        if (hasSwap(player.activeEffects)) {
-          set({
-            phase: 'combat',
-            combat: { ...baseCombat, phase: 'swapping', currentQuestionType: qType },
-          });
-        } else {
-          const question = drawQuestion(questionProgress, qType);
-          const newProgress = markDiscovered(questionProgress, question.id);
-          set({
-            phase: 'combat',
-            combat: { ...baseCombat, currentQuestion: question, currentQuestionType: qType },
-            questionProgress: newProgress,
-          });
-        }
-      } else {
-        set({ phase: 'combat', combat: baseCombat });
-      }
+    if ((node.type === 'monster' || node.type === 'boss') && !node.cleared) {
+      if (node.type === 'boss') sfx('boss');
+      const enemy = node.enemy!;
+      set({ phase: 'combat', combat: makeCombatStart(enemy) });
       return;
     }
 
-    if (tile.type === 'chest' && !tile.cleared) {
-      set({ phase: 'chest', currentChestItemId: tile.itemId ?? null });
+    if (node.type === 'chest' && !node.cleared) {
+      set({ phase: 'chest', currentChestItemId: node.itemId ?? null });
       return;
     }
 
-    if (tile.type === 'shop') {
-      const prevPurchased = shopPurchases[tile.id] ?? [];
+    if (node.type === 'shop') {
+      const prevPurchased = shopPurchases[node.id] ?? [];
       set({
         phase: 'shop',
-        shopState: { tileId: tile.id, itemIds: tile.shopItemIds ?? [], purchased: prevPurchased },
+        shopState: { tileId: node.id, itemIds: node.shopItemIds ?? [], purchased: prevPurchased },
       });
       return;
     }
 
-    if (tile.type === 'rest' && !tile.cleared) {
+    if (node.type === 'rest' && !node.cleared) {
       set({ phase: 'rest', currentRest: getRandomRest() });
       return;
     }
   },
 
+  // ── Combat: player selects a command ────────────────────────
+
+  selectCommand: (commandId: string) => {
+    const { combat, player, questionProgress } = get();
+    if (!combat || combat.phase !== 'player-turn') return;
+
+    const cmd = player.commands.find(c => c.id === commandId);
+    if (!cmd) return;
+    if (combat.energy < cmd.energyCost) return;
+
+    const qType = cmd.questionType;
+
+    // Swap active effect lets the player change the question type
+    if (hasEffect(player.activeEffects, 'swap')) {
+      set({
+        combat: {
+          ...combat,
+          pendingCommand: cmd,
+          currentQuestionType: qType,
+          phase: 'question', // player will be prompted to use/skip swap in UI
+        },
+      });
+      return;
+    }
+
+    const question = drawQuestion(questionProgress, qType);
+    const newProgress = markDiscovered(questionProgress, question.id);
+    set({
+      combat: {
+        ...combat,
+        pendingCommand: cmd,
+        currentQuestion: question,
+        currentQuestionType: qType,
+        phase: 'question',
+      },
+      questionProgress: newProgress,
+    });
+  },
+
+  // ── Combat: swap the question type before answering ─────────
+
+  swapQuestionType: (qType: QuestionType) => {
+    const { combat, player, questionProgress } = get();
+    if (!combat || combat.phase !== 'question' || !combat.pendingCommand) return;
+    const newEffects = consumeSwap(player.activeEffects);
+    const question = drawQuestion(questionProgress, qType);
+    const newProgress = markDiscovered(questionProgress, question.id);
+    set({
+      combat: { ...combat, currentQuestion: question, currentQuestionType: qType },
+      player: { ...player, activeEffects: newEffects },
+      questionProgress: newProgress,
+    });
+  },
+
+  // ── Combat: skip the question (auto-succeed) ─────────────────
+
+  skipQuestion: () => {
+    const { combat, player, questionProgress } = get();
+    if (!combat || combat.phase !== 'question' || !combat.pendingCommand) return;
+    if (!hasEffect(player.activeEffects, 'skip')) return;
+
+    const cmd = combat.pendingCommand;
+    const newEffects = consumeSkip(player.activeEffects);
+
+    // Apply command effects as if correct
+    const { newEnemyHp, newEnemyBlock, newEnemyStrength, newPlayerBlock, newPlayerStrength, effectLog } =
+      applyCommandEffects(cmd, combat);
+
+    const newEnergy = combat.energy - cmd.energyCost;
+    const logEntry = `📜 Skip used! ${cmd.name} auto-succeeds. ${effectLog}`;
+
+    if (newEnemyHp <= 0) {
+      set({
+        combat: {
+          ...combat,
+          enemyHp: 0, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+          playerBlock: newPlayerBlock, playerStrength: newPlayerStrength,
+          energy: newEnergy,
+          usedCommandIds: [...combat.usedCommandIds, cmd.id],
+          pendingCommand: null, currentQuestion: null, currentQuestionType: null,
+          phase: 'result', lastAnswerCorrect: true,
+          log: [...combat.log, logEntry],
+        },
+        player: { ...player, activeEffects: newEffects },
+      });
+      return;
+    }
+
+    set({
+      combat: {
+        ...combat,
+        enemyHp: newEnemyHp, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+        playerBlock: newPlayerBlock, playerStrength: newPlayerStrength,
+        energy: newEnergy,
+        usedCommandIds: [...combat.usedCommandIds, cmd.id],
+        pendingCommand: null, currentQuestion: null, currentQuestionType: null,
+        phase: 'result', lastAnswerCorrect: true,
+        log: [...combat.log, logEntry],
+      },
+      player: { ...player, activeEffects: newEffects },
+      questionProgress,
+    });
+  },
+
+  // ── Combat: submit an answer ─────────────────────────────────
+
+  submitAnswer: (answer: string) => {
+    const { combat, questionProgress } = get();
+    if (!combat || combat.phase !== 'question' || !combat.currentQuestion || !combat.pendingCommand) return;
+
+    const correct = checkAnswer(combat.currentQuestion, answer);
+    const cmd = combat.pendingCommand;
+    sfx(correct ? 'correct' : 'wrong');
+
+    const newProgress = recordAnswer(questionProgress, combat.currentQuestion.id, correct);
+    const newEnergy = combat.energy - cmd.energyCost;
+    const newUsed = [...combat.usedCommandIds, cmd.id];
+
+    if (!correct) {
+      const logEntry = `✘ ${cmd.name} missed! (wrong answer)`;
+      set({
+        combat: {
+          ...combat,
+          energy: newEnergy,
+          usedCommandIds: newUsed,
+          pendingCommand: null,
+          phase: 'result', lastAnswerCorrect: false,
+          log: [...combat.log, logEntry],
+        },
+        questionProgress: newProgress,
+      });
+      return;
+    }
+
+    // Apply command effects
+    const { newEnemyHp, newEnemyBlock, newEnemyStrength, newPlayerBlock, newPlayerStrength, effectLog } =
+      applyCommandEffects(cmd, combat);
+
+    const logEntry = `✔ ${cmd.name}! ${effectLog}`;
+
+    if (newEnemyHp <= 0) {
+      set({
+        combat: {
+          ...combat,
+          enemyHp: 0, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+          playerBlock: newPlayerBlock, playerStrength: newPlayerStrength,
+          energy: newEnergy, usedCommandIds: newUsed,
+          pendingCommand: null, currentQuestion: null, currentQuestionType: null,
+          phase: 'result', lastAnswerCorrect: true,
+          log: [...combat.log, logEntry],
+        },
+        questionProgress: newProgress,
+      });
+      return;
+    }
+
+    set({
+      combat: {
+        ...combat,
+        enemyHp: newEnemyHp, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+        playerBlock: newPlayerBlock, playerStrength: newPlayerStrength,
+        energy: newEnergy, usedCommandIds: newUsed,
+        pendingCommand: null, currentQuestion: null, currentQuestionType: null,
+        phase: 'result', lastAnswerCorrect: true,
+        log: [...combat.log, logEntry],
+      },
+      questionProgress: newProgress,
+    });
+  },
+
+  // ── Combat: acknowledge result and return to player turn ──────
+
+  acknowledgeResult: () => {
+    const { combat, player } = get();
+    if (!combat || combat.phase !== 'result') return;
+
+    // Enemy died on the last command
+    if (combat.enemyHp <= 0) {
+      sfx('victory');
+      const { floorBoard, playerNodeId, currentFloor } = get();
+      const newBoard = floorBoard ? markNodeCleared(floorBoard, playerNodeId) : floorBoard;
+      const goldGain = combat.enemy.gold;
+      const xpGain   = combat.enemy.xp;
+      const newPlayer = { ...player, gold: player.gold + goldGain, xp: player.xp + xpGain };
+
+      const isFinalBoss = combat.enemy.type === 'boss' && currentFloor === 5;
+      if (isFinalBoss) {
+        set({ phase: 'victory', floorBoard: newBoard, player: newPlayer, combat: null });
+      } else {
+        const choices = drawCommandChoices(3);
+        set({
+          phase: 'combat',
+          floorBoard: newBoard,
+          player: newPlayer,
+          combat: { ...combat, phase: 'command-choice', commandChoices: choices },
+        });
+      }
+      return;
+    }
+
+    // Back to player turn
+    set({ combat: { ...combat, phase: 'player-turn', lastAnswerCorrect: null } });
+  },
+
+  // ── Combat: end player turn, execute enemy action ─────────────
+
+  endTurn: () => {
+    const { combat, player } = get();
+    if (!combat || combat.phase !== 'player-turn') return;
+
+    // Enemy loses block at start of their turn
+    const enemyBlockCleared = { ...combat, enemyBlock: 0 };
+
+    // Resolve enemy action
+    const { action, dieRoll } = resolveEnemyAction(enemyBlockCleared);
+    let newEnemyHp = combat.enemyHp;
+    let newEnemyBlock = 0;
+    let newEnemyStrength = combat.enemyStrength;
+    let newPlayerHp = player.hp;
+    let newPlayerBlock = combat.playerBlock;
+    let newEffects = player.activeEffects;
+    const parts: string[] = [];
+
+    for (const eff of action.effects) {
+      if (eff.kind === 'attack') {
+        const totalDmg = eff.damage + combat.enemyStrength;
+        const shieldCharges = getShieldCharges(newEffects);
+        const result = applyEnemyAttack(totalDmg, newPlayerBlock, newPlayerHp, player.maxHp, shieldCharges);
+        newPlayerHp    = result.newPlayerHp;
+        newPlayerBlock = result.newPlayerBlock;
+        if (result.absorbed) {
+          newEffects = consumeShield(newEffects);
+          parts.push(`🛡 Shield absorbed ${totalDmg} dmg`);
+        } else if (result.blocked > 0) {
+          parts.push(`${action.icon} ${eff.damage + (combat.enemyStrength > 0 ? `+${combat.enemyStrength}` : '')} dmg (${result.blocked} blocked → ${result.dealt} dealt)`);
+        } else {
+          parts.push(`${action.icon} ${totalDmg} damage dealt`);
+        }
+      } else if (eff.kind === 'block') {
+        newEnemyBlock += eff.amount;
+        parts.push(`🛡 ${enemy_name(combat)} gains ${eff.amount} block`);
+      } else if (eff.kind === 'strengthen') {
+        newEnemyStrength += eff.amount;
+        parts.push(`💪 ${enemy_name(combat)} gains ${eff.amount} Strength`);
+      }
+    }
+
+    const logEntry = `👹 ${enemy_name(combat)}: ${action.label} — ${parts.join(', ')}`;
+
+    if (newPlayerHp <= 0) {
+      sfx('defeat');
+      set({
+        combat: {
+          ...combat,
+          enemyHp: newEnemyHp, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+          playerBlock: newPlayerBlock,
+          enemySequenceIndex: combat.enemySequenceIndex + 1,
+          lastDieRoll: dieRoll,
+          phase: 'defeated', lastAnswerCorrect: null,
+          log: [...combat.log, logEntry, '💀 You have fallen...'],
+        },
+        player: { ...player, hp: newPlayerHp, activeEffects: newEffects },
+      });
+      return;
+    }
+
+    set({
+      combat: {
+        ...combat,
+        enemyHp: newEnemyHp, enemyBlock: newEnemyBlock, enemyStrength: newEnemyStrength,
+        playerBlock: newPlayerBlock,
+        enemySequenceIndex: combat.enemySequenceIndex + 1,
+        lastDieRoll: dieRoll,
+        phase: 'enemy-turn',
+        log: [...combat.log, logEntry],
+      },
+      player: { ...player, hp: newPlayerHp, activeEffects: newEffects },
+    });
+  },
+
+  // ── Combat: acknowledge enemy turn → new player turn ─────────
+
+  acknowledgeEnemyTurn: () => {
+    const { combat } = get();
+    if (!combat || combat.phase !== 'enemy-turn') return;
+    // Player loses block at start of their own turn
+    set({
+      combat: {
+        ...combat,
+        playerBlock: 0,
+        energy: MAX_ENERGY,
+        usedCommandIds: [],
+        phase: 'player-turn',
+        lastAnswerCorrect: null,
+      },
+    });
+  },
+
+  // ── Combat: final defeat ack ─────────────────────────────────
+
+  acknowledgeVictory: () => {
+    const { combat, floorBoard, playerNodeId } = get();
+    if (!combat || combat.phase !== 'defeated') return;
+    const newBoard = floorBoard ? markNodeCleared(floorBoard, playerNodeId) : floorBoard;
+    sfx('defeat');
+    set({ phase: 'defeat', combat: null, floorBoard: newBoard });
+  },
+
+  // ── Command choice ────────────────────────────────────────────
+
+  pickCommandChoice: (index: number) => {
+    const { combat, player, currentFloor } = get();
+    if (!combat || combat.phase !== 'command-choice' || !combat.commandChoices) return;
+
+    const chosen = combat.commandChoices[index];
+    if (!chosen) return;
+
+    if (player.commands.length < MAX_COMMANDS) {
+      const newCommands = [...player.commands, chosen];
+      const isFinalBoss = combat.enemy.type === 'boss' && currentFloor === 5;
+      set({
+        phase: isFinalBoss ? 'victory' : 'map',
+        player: { ...player, commands: newCommands },
+        combat: null,
+      });
+    } else {
+      // Must forget a command first — signal UI with a special sub-state
+      // We store the index of the chosen card and wait for forgetCommand
+      set({ combat: { ...combat, commandChoices: [chosen] } }); // narrow to chosen card
+    }
+  },
+
+  skipCommandChoice: () => {
+    const { combat, currentFloor } = get();
+    if (!combat || combat.phase !== 'command-choice') return;
+    const isFinalBoss = combat.enemy.type === 'boss' && currentFloor === 5;
+    set({ phase: isFinalBoss ? 'victory' : 'map', combat: null });
+  },
+
+  forgetCommand: (commandId: string, pickIndex: number) => {
+    const { combat, player, currentFloor } = get();
+    if (!combat || combat.phase !== 'command-choice' || !combat.commandChoices) return;
+
+    const chosen = combat.commandChoices[pickIndex];
+    if (!chosen) return;
+
+    const newCommands = player.commands
+      .filter(c => c.id !== commandId)
+      .concat(chosen);
+
+    const isFinalBoss = combat.enemy.type === 'boss' && currentFloor === 5;
+    set({
+      phase: isFinalBoss ? 'victory' : 'map',
+      player: { ...player, commands: newCommands },
+      combat: null,
+    });
+  },
+
+  // ── Rest ─────────────────────────────────────────────────────
+
+  upgradeCommand: (commandId: string) => {
+    const { player } = get();
+    const cmd = player.commands.find(c => c.id === commandId);
+    if (!cmd || cmd.upgraded) return;
+    if (player.xp < cmd.upgradeCost) return;
+    const newCommands = player.commands.map(c =>
+      c.id === commandId
+        ? { ...c, upgraded: true, effects: c.upgradedEffects, description: c.upgradedDescription }
+        : c
+    );
+    set({ player: { ...player, xp: player.xp - cmd.upgradeCost, commands: newCommands } });
+  },
+
+  takeRest: () => {
+    const { currentRest, player, floorBoard, playerNodeId } = get();
+    if (!currentRest) return;
+    const newHp = clamp(player.hp + currentRest.hpHeal, 0, player.maxHp);
+    const newXp = player.xp + (currentRest.bonusXp ?? 0);
+    sfx('heal');
+    const newBoard = floorBoard ? markNodeCleared(floorBoard, playerNodeId) : floorBoard;
+    set({ phase: 'map', currentRest: null, floorBoard: newBoard, player: { ...player, hp: newHp, xp: newXp } });
+  },
+
+  // ── Chest / Floor ────────────────────────────────────────────
+
   collectChest: () => {
-    const { currentChestItemId, floorBoard, playerPos, player } = get();
+    const { currentChestItemId, floorBoard, playerNodeId, player } = get();
     if (!floorBoard) return;
-    const newBoard = markTileCleared(floorBoard, playerPos.row, playerPos.col);
+    if (player.inventory.length >= MAX_INVENTORY) return;
+
+    const newBoard = markNodeCleared(floorBoard, playerNodeId);
 
     if (!currentChestItemId) {
       set({ phase: 'map', currentChestItemId: null, floorBoard: newBoard });
@@ -214,238 +603,37 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     });
   },
 
+  abandonChest: () => {
+    const { floorBoard, playerNodeId } = get();
+    const newBoard = floorBoard ? markNodeCleared(floorBoard, playerNodeId) : floorBoard;
+    set({ phase: 'map', currentChestItemId: null, floorBoard: newBoard });
+  },
+
   descendFloor: () => {
     const { currentFloor } = get();
     const next = currentFloor + 1;
     if (next > 5) return;
     const board = generateFloor(next);
+    const startNode = board.nodes.find(n => n.type === 'start')!;
     set({
       phase: 'map',
       currentFloor: next,
-      playerPos: { row: 0, col: 0 },
+      playerNodeId: startNode.id,
       floorBoard: board,
-      combat: null,
-      shopState: null,
-      currentRest: null,
-      currentChestItemId: null,
+      combat: null, shopState: null, currentRest: null, currentChestItemId: null,
     });
   },
 
-  rollForQuestion: () => {
-    const { combat, questionProgress, player } = get();
-    if (!combat || combat.phase !== 'rolling') return;
-
-    sfx('roll');
-    const roll = rollDie();
-    const qType = getBossQuestionType(roll, combat.enemy);
-
-    const label =
-      qType === 't1' ? '❄ Part 1' :
-      qType === 't2' ? '🌿 Part 2' :
-      qType === 't3' ? '🔮 Part 3' : '⚔ Part 4';
-
-    if (hasSwap(player.activeEffects)) {
-      set({
-        combat: {
-          ...combat,
-          diceRoll: roll,
-          currentQuestionType: qType,
-          phase: 'swapping',
-          log: [...combat.log, `🎲 Rolled ${roll} → ${label} (swap available!)`],
-        },
-      });
-    } else {
-      const question = drawQuestion(questionProgress, qType);
-      const newProgress = markDiscovered(questionProgress, question.id);
-      set({
-        combat: {
-          ...combat,
-          diceRoll: roll,
-          currentQuestion: question,
-          currentQuestionType: qType,
-          phase: 'question',
-          log: [...combat.log, `🎲 Rolled ${roll} → ${label}`],
-        },
-        questionProgress: newProgress,
-      });
-    }
-  },
-
-  pickSwapType: (qType: QuestionType) => {
-    const { combat, player, questionProgress } = get();
-    if (!combat || combat.phase !== 'swapping') return;
-
-    const question = drawQuestion(questionProgress, qType);
-    const newProgress = markDiscovered(questionProgress, question.id);
-    const newEffects = consumeSwap(player.activeEffects);
-
-    set({
-      combat: { ...combat, currentQuestion: question, currentQuestionType: qType, phase: 'question' },
-      player: { ...player, activeEffects: newEffects },
-      questionProgress: newProgress,
-    });
-  },
-
-  skipQuestion: () => {
-    const { combat, player, questionProgress } = get();
-    if (!combat || combat.phase !== 'question') return;
-
-    const skipIdx = player.activeEffects.findIndex(e => e.kind === 'skip');
-    if (skipIdx === -1) return;
-
-    const skipEffect = player.activeEffects[skipIdx] as { kind: 'skip'; charges: number };
-    const newEffects: ActiveEffect[] = skipEffect.charges <= 1
-      ? player.activeEffects.filter((_, i) => i !== skipIdx)
-      : player.activeEffects.map((e, i) =>
-          i === skipIdx ? { kind: 'skip' as const, charges: skipEffect.charges - 1 } : e
-        );
-
-    const updatedPlayer = { ...player, activeEffects: newEffects };
-    const isBossMultiType = combat.enemy.bossTypes && combat.enemy.bossTypes.length > 1;
-
-    if (isBossMultiType) {
-      set({
-        player: updatedPlayer,
-        combat: {
-          ...combat, phase: 'rolling', diceRoll: null,
-          currentQuestion: null, currentQuestionType: null,
-          log: [...combat.log, '📜 Question skipped.'],
-        },
-      });
-    } else {
-      const qType = combat.currentQuestionType!;
-      const question = drawQuestion(questionProgress, qType);
-      const newProgress = markDiscovered(questionProgress, question.id);
-      set({
-        player: updatedPlayer,
-        combat: {
-          ...combat, currentQuestion: question, phase: 'question',
-          log: [...combat.log, '📜 Question skipped.'],
-        },
-        questionProgress: newProgress,
-      });
-    }
-  },
-
-  submitAnswer: (answer: string) => {
-    const { combat, player, questionProgress } = get();
-    if (!combat || combat.phase !== 'question' || !combat.currentQuestion) return;
-
-    const correct = checkAnswer(combat.currentQuestion, answer);
-    sfx(correct ? 'correct' : 'wrong');
-    const newEnemyHp = correct ? combat.enemyHp - 1 : combat.enemyHp;
-
-    const newProgress = recordAnswer(questionProgress, combat.currentQuestion.id, correct);
-
-    let newPlayerHp = player.hp;
-    let logEntry: string;
-    let updatedEffects = player.activeEffects;
-
-    if (!correct) {
-      const shieldIdx = player.activeEffects.findIndex(e => e.kind === 'shield');
-      const absorbed = shieldIdx !== -1;
-      const damageDealt = absorbed ? 0 : combat.enemy.atk;
-      newPlayerHp = clamp(player.hp - damageDealt, 0, player.maxHp);
-
-      if (absorbed) {
-        const shield = player.activeEffects[shieldIdx] as { kind: 'shield'; charges: number };
-        updatedEffects = shield.charges <= 1
-          ? player.activeEffects.filter((_, i) => i !== shieldIdx)
-          : player.activeEffects.map((e, i) =>
-              i === shieldIdx ? { kind: 'shield' as const, charges: shield.charges - 1 } : e
-            );
-        logEntry = `🛡 Shield absorbed the attack! (${shield.charges - 1 > 0 ? `${shield.charges - 1} charges left` : 'shield broken'})`;
-      } else {
-        logEntry = `✘ Wrong! ${combat.enemy.name} deals ${damageDealt} damage. (HP: ${newPlayerHp}/${player.maxHp})`;
-      }
-    } else {
-      logEntry = `✔ Correct! ${combat.enemy.name} takes 1 damage. (Enemy HP: ${newEnemyHp})`;
-    }
-
-    const updatedPlayer = { ...player, hp: newPlayerHp, activeEffects: updatedEffects };
-
-    if (newPlayerHp <= 0) {
-      set({
-        combat: { ...combat, enemyHp: newEnemyHp, phase: 'defeated', lastAnswerCorrect: correct,
-                  log: [...combat.log, logEntry, '💀 You have fallen...'] },
-        player: updatedPlayer,
-        questionProgress: newProgress,
-      });
-      return;
-    }
-
-    if (newEnemyHp <= 0) {
-      set({
-        combat: { ...combat, enemyHp: 0, phase: 'defeated', lastAnswerCorrect: true,
-                  log: [...combat.log, logEntry,
-                        `🏆 ${combat.enemy.name} defeated! +${combat.enemy.gold} Gold, +${combat.enemy.xp} XP`] },
-        player: { ...updatedPlayer, gold: player.gold + combat.enemy.gold, xp: player.xp + combat.enemy.xp },
-        questionProgress: newProgress,
-      });
-      return;
-    }
-
-    set({
-      combat: { ...combat, enemyHp: newEnemyHp, phase: 'result',
-                lastAnswerCorrect: correct, log: [...combat.log, logEntry] },
-      player: updatedPlayer,
-      questionProgress: newProgress,
-    });
-  },
-
-  acknowledgeResult: () => {
-    const { combat, floorBoard, playerPos, currentFloor, questionProgress, player } = get();
-    if (!combat) return;
-
-    if (combat.phase === 'defeated') {
-      const enemyDied = combat.enemyHp <= 0;
-      if (enemyDied) {
-        sfx('victory');
-        const newBoard = floorBoard ? markTileCleared(floorBoard, playerPos.row, playerPos.col) : floorBoard;
-        const isFinalBoss = combat.enemy.type === 'boss' && currentFloor === 5;
-        set({ phase: isFinalBoss ? 'victory' : 'map', combat: null, floorBoard: newBoard });
-      } else {
-        sfx('defeat');
-        set({ phase: 'defeat', combat: null });
-      }
-      return;
-    }
-
-    if (combat.phase === 'result') {
-      const isBossMultiType = combat.enemy.bossTypes && combat.enemy.bossTypes.length > 1;
-      if (isBossMultiType) {
-        set({
-          combat: {
-            ...combat, phase: 'rolling', diceRoll: null,
-            currentQuestion: null, currentQuestionType: null, lastAnswerCorrect: null,
-          },
-        });
-      } else {
-        const qType = combat.currentQuestionType!;
-        if (hasSwap(player.activeEffects)) {
-          set({
-            combat: { ...combat, phase: 'swapping', currentQuestion: null, lastAnswerCorrect: null },
-          });
-        } else {
-          const question = drawQuestion(questionProgress, qType);
-          const newProgress = markDiscovered(questionProgress, question.id);
-          set({
-            combat: { ...combat, currentQuestion: question, phase: 'question', lastAnswerCorrect: null },
-            questionProgress: newProgress,
-          });
-        }
-      }
-    }
-  },
+  // ── Shop ─────────────────────────────────────────────────────
 
   buyItem: (itemId: string) => {
     const { player, shopState } = get();
     if (!shopState) return;
+    if (player.inventory.length >= MAX_INVENTORY) return;
     const item = getItemById(itemId);
     if (!item) return;
     if (player.gold < item.cost) return;
     if (shopState.purchased.includes(itemId)) return;
-
     const instanceId = makeInstanceId();
     sfx('buy');
     set({
@@ -468,59 +656,46 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     });
   },
 
-  takeRest: () => {
-    const { currentRest, player, floorBoard, playerPos } = get();
-    if (!currentRest) return;
-    const newHp = clamp(player.hp + currentRest.hpHeal, 0, player.maxHp);
-    const newXp = player.xp + (currentRest.bonusXp ?? 0);
-    sfx('heal');
-    const newBoard = floorBoard ? markTileCleared(floorBoard, playerPos.row, playerPos.col) : floorBoard;
-    set({ phase: 'map', currentRest: null, floorBoard: newBoard, player: { ...player, hp: newHp, xp: newXp } });
-  },
+  // ── Items ─────────────────────────────────────────────────────
 
   useItem: (instanceId: string) => {
     const { player, combat } = get();
     const item = player.inventory.find(i => i.instanceId === instanceId);
     if (!item) return;
-
     const removeItem = (inv: InventoryItem[]) => inv.filter(i => i.instanceId !== instanceId);
 
     switch (item.type) {
       case 'POTION': {
         if (item.id === 'i11' && combat) return;
         sfx('heal');
-
         let newHp = player.hp;
         let newEnemyHp = combat?.enemyHp ?? 0;
         let logMsg = '';
-
         if (item.id === 'i1') {
-          if (combat) { newEnemyHp = Math.max(0, newEnemyHp - 2); logMsg = '🧪 Hi-Potion: -2 enemy HP'; }
-          else         { newHp = clamp(player.hp + 4, 0, player.maxHp); }
+          if (combat) { newEnemyHp = Math.max(0, newEnemyHp - 10); logMsg = '🧪 Hi-Potion: -10 enemy HP'; }
+          else        { newHp = clamp(player.hp + 10, 0, player.maxHp); }
         } else if (item.id === 'i2') {
           newHp = player.maxHp; logMsg = '💊 Elixir: full HP restored';
         } else if (item.id === 'i3') {
-          newHp = clamp(player.hp + 2, 0, player.maxHp); logMsg = '🌿 Antidote: +2 HP';
+          newHp = clamp(player.hp + 8, 0, player.maxHp); logMsg = '🌿 Antidote: +8 HP';
         } else if (item.id === 'i10') {
           newHp = player.maxHp;
-          newEnemyHp = combat ? Math.max(0, newEnemyHp - 3) : newEnemyHp;
-          logMsg = '⚗ Megalixir: full HP + -3 enemy HP';
+          newEnemyHp = combat ? Math.max(0, newEnemyHp - 15) : newEnemyHp;
+          logMsg = '⚗ Megalixir: full HP + -15 enemy HP';
         } else if (item.id === 'i11') {
           set(state => ({
             player: {
               ...state.player,
-              hp: clamp(player.hp + 3, 0, player.maxHp),
-              xp: state.player.xp + 2,
+              hp: clamp(player.hp + 12, 0, player.maxHp),
+              xp: state.player.xp + 5,
               inventory: removeItem(state.player.inventory),
             },
           }));
           return;
         }
-
         const updatedCombat = combat
           ? { ...combat, enemyHp: newEnemyHp, log: logMsg ? [...combat.log, logMsg] : combat.log }
           : combat;
-
         if (updatedCombat && newEnemyHp <= 0) {
           const victoryGold = player.gold + (combat?.enemy.gold ?? 0);
           const victoryXp   = player.xp   + (combat?.enemy.xp   ?? 0);
@@ -530,20 +705,18 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
               inventory: removeItem(state.player.inventory),
             },
             combat: {
-              ...updatedCombat!, enemyHp: 0, phase: 'defeated',
+              ...updatedCombat!, enemyHp: 0, phase: 'result' as CombatPhase,
               log: [...(updatedCombat?.log ?? []), `🏆 ${combat?.enemy.name} defeated!`],
             },
           }));
           return;
         }
-
         set(state => ({
           player: { ...state.player, hp: newHp, inventory: removeItem(state.player.inventory) },
           combat: updatedCombat,
         }));
         break;
       }
-
       case 'SHIELD': {
         const charges = item.id === 'i12' ? 2 : 1;
         set(state => ({
@@ -555,7 +728,6 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
         }));
         break;
       }
-
       case 'SKIP': {
         const charges = item.id === 'i7' ? 2 : 1;
         set(state => ({
@@ -567,9 +739,7 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
         }));
         break;
       }
-
       case 'SWAP': {
-        // i8 (Prism Shard) = 1 swap; i9 (Scholar's Crystal) = effectively unlimited (99)
         const charges = item.id === 'i9' ? 99 : 1;
         set(state => ({
           player: {
@@ -583,17 +753,65 @@ export const useGameStore = create<GameStore>()(persist((set, get) => ({
     }
   },
 
-  openCodex: () => {
-    set({ phase: 'questions' });
+  dropItem: (instanceId: string) => {
+    const { player } = get();
+    set({ player: { ...player, inventory: player.inventory.filter(i => i.instanceId !== instanceId) } });
   },
 
-  closeCodex: () => {
-    const { floorBoard } = get();
-    set({ phase: floorBoard ? 'map' : 'title' });
-  },
+  openCodex:  () => set({ phase: 'questions' }),
+  closeCodex: () => { const { floorBoard } = get(); set({ phase: floorBoard ? 'map' : 'title' }); },
+  resetGame:  () => { const { questionProgress } = get(); set({ ...INITIAL_GAME_STATE, questionProgress }); },
 
-  resetGame: () => {
-    const { questionProgress } = get();
-    set({ ...INITIAL_GAME_STATE, questionProgress });
-  },
-}), { name: 'dungeon-of-grammar-save-v3' }));
+}), { name: 'dungeon-of-grammar-save-v5' }));
+
+// ── Internal helpers ─────────────────────────────────────────────
+
+function enemy_name(combat: CombatState): string {
+  return combat.enemy.name;
+}
+
+interface EffectResult {
+  newEnemyHp: number;
+  newEnemyBlock: number;
+  newEnemyStrength: number;
+  newPlayerBlock: number;
+  newPlayerStrength: number;
+  effectLog: string;
+}
+
+function applyCommandEffects(cmd: Command, combat: CombatState): EffectResult {
+  const effects = cmd.effects;
+  let newEnemyHp = combat.enemyHp;
+  let newEnemyBlock = combat.enemyBlock;
+  let newEnemyStrength = combat.enemyStrength;
+  let newPlayerBlock = combat.playerBlock;
+  let newPlayerStrength = combat.playerStrength;
+  const parts: string[] = [];
+
+  for (const eff of effects) {
+    if (eff.kind === 'attack') {
+      const totalDmg = eff.damage + combat.playerStrength;
+      const absorbed = Math.min(totalDmg, newEnemyBlock);
+      const dealt    = totalDmg - absorbed;
+      newEnemyBlock  = newEnemyBlock - absorbed;
+      newEnemyHp     = Math.max(0, newEnemyHp - dealt);
+      if (absorbed > 0) {
+        parts.push(`⚔ ${totalDmg} dmg (${absorbed} blocked → ${dealt} dealt)`);
+      } else {
+        parts.push(`⚔ ${totalDmg} dmg`);
+      }
+    } else if (eff.kind === 'block') {
+      newPlayerBlock += eff.amount;
+      parts.push(`🛡 +${eff.amount} block`);
+    } else if (eff.kind === 'strength') {
+      newPlayerStrength += eff.amount;
+      parts.push(`💪 +${eff.amount} Strength`);
+    }
+  }
+
+  return {
+    newEnemyHp, newEnemyBlock, newEnemyStrength,
+    newPlayerBlock, newPlayerStrength,
+    effectLog: parts.join(', '),
+  };
+}

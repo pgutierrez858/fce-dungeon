@@ -1,10 +1,12 @@
 import { useGameStore } from '../../store/gameStore';
 import { getItemById } from '../../data/items';
+import { MAX_INVENTORY } from '../../types';
 import styles from './ChestScreen.module.css';
 
 export function ChestScreen() {
-  const { currentChestItemId, collectChest } = useGameStore();
+  const { currentChestItemId, collectChest, abandonChest, player } = useGameStore();
   const item = currentChestItemId ? getItemById(currentChestItemId) : null;
+  const isFull = player.inventory.length >= MAX_INVENTORY;
 
   return (
     <div className={`${styles.screen} animate-fade-in`}>
@@ -22,15 +24,33 @@ export function ChestScreen() {
                 <p className={styles.itemEffect}>{item.effect}</p>
               </div>
             </div>
-            <p className={styles.freeLabel}>✨ Added to inventory for free!</p>
+
+            {isFull ? (
+              <p className={styles.fullWarning}>
+                ⚠ Inventory full! Drop an item from your bag first.
+              </p>
+            ) : (
+              <p className={styles.freeLabel}>✨ Added to inventory for free!</p>
+            )}
           </>
         ) : (
           <p className={styles.emptyLabel}>The chest is empty...</p>
         )}
 
-        <button className={styles.takeBtn} onClick={collectChest}>
-          {item ? 'Take Item ▶' : 'Close ▶'}
-        </button>
+        <div className={styles.actions}>
+          {item && (
+            <button
+              className={styles.takeBtn}
+              onClick={collectChest}
+              disabled={isFull}
+            >
+              {isFull ? '🎒 Bag Full' : 'Take Item ▶'}
+            </button>
+          )}
+          <button className={styles.abandonBtn} onClick={abandonChest}>
+            {item ? 'Leave Behind' : 'Close ▶'}
+          </button>
+        </div>
       </div>
     </div>
   );

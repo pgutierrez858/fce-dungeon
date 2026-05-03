@@ -81,6 +81,40 @@
   text-align: center;
 }
 
+.fullWarning {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  color: var(--ember2);
+  text-align: center;
+  border: 1px solid var(--ember);
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: rgba(192,57,43,0.1);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.abandonBtn {
+  font-family: 'Cinzel', serif;
+  background: transparent;
+  color: var(--aged);
+  border: 1.5px solid var(--border-rune);
+  padding: 10px 20px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex: 1;
+  transition: color 0.15s, border-color 0.15s;
+}
+.abandonBtn:hover { color: var(--parchment); border-color: var(--parchment2); }
+
 .emptyLabel {
   font-size: 0.82rem;
   color: var(--aged);
@@ -93,13 +127,15 @@
   background: var(--gold);
   color: var(--stone);
   border: none;
-  padding: 10px 28px;
+  padding: 10px 20px;
   font-size: 0.82rem;
   letter-spacing: 0.1em;
   border-radius: 3px;
   text-transform: uppercase;
   font-weight: 700;
   cursor: pointer;
+  flex: 1;
   transition: background 0.15s, transform 0.1s;
 }
-.takeBtn:hover { background: var(--gold2); transform: translateY(-1px); }
+.takeBtn:hover:not(:disabled) { background: var(--gold2); transform: translateY(-1px); }
+.takeBtn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--border-rune); }

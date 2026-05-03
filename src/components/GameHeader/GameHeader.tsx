@@ -3,7 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import styles from './GameHeader.module.css';
 
 export function GameHeader() {
-  const { currentFloor, floorBoard, resetGame, openCodex } = useGameStore();
+  const { currentFloor, floorBoard, phase, resetGame, openCodex } = useGameStore();
   const [confirming, setConfirming] = useState(false);
 
   function handleRestart() {
@@ -14,7 +14,7 @@ export function GameHeader() {
 
   return (
     <div className={styles.header}>
-      <h1 className={styles.title}>⚔ Dungeon of Grammar ⚔</h1>
+      <h1 className={styles.title}>👹 Dungeon of Grammar 👹</h1>
 
       <div className={styles.right}>
         {floorBoard && (
@@ -23,7 +23,12 @@ export function GameHeader() {
           </span>
         )}
 
-        <button className={styles.codexBtn} onClick={openCodex} title="Grammar Codex">
+        <button
+          className={styles.codexBtn}
+          onClick={openCodex}
+          disabled={phase === 'combat'}
+          title={phase === 'combat' ? 'Cannot open during combat' : 'Grammar Codex'}
+        >
           📖 Codex
         </button>
 

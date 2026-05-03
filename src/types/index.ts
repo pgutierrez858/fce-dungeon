@@ -2,20 +2,62 @@ export type QuestionType = 't1' | 't2' | 't3' | 't4';
 export type EnemyType = QuestionType | 'boss' | 'final';
 export type TileType = 'start' | 'monster' | 'chest' | 'rest' | 'shop' | 'boss';
 
+// ── Commands ────────────────────────────────────────────────────
+
+export type CommandEffect =
+  | { kind: 'attack'; damage: number }
+  | { kind: 'block'; amount: number }
+  | { kind: 'strength'; amount: number };
+
+export interface Command {
+  id: string;
+  name: string;
+  questionType: QuestionType;
+  energyCost: number;
+  effects: CommandEffect[];
+  upgradedEffects: CommandEffect[];
+  upgradeCost: number;
+  upgraded: boolean;
+  description: string;
+  upgradedDescription: string;
+}
+
+// ── Enemy ───────────────────────────────────────────────────────
+
+export type EnemyActionEffect =
+  | { kind: 'attack'; damage: number }
+  | { kind: 'block'; amount: number }
+  | { kind: 'strengthen'; amount: number };
+
+export interface EnemyAction {
+  id: string;
+  icon: string;
+  label: string;
+  effects: EnemyActionEffect[];
+}
+
+export type EnemyPattern =
+  | { kind: 'fixed'; actionId: string }
+  | { kind: 'sequence'; actionIds: string[] }
+  | { kind: 'dice'; faceMap: Record<number, string> };
+
 export interface Enemy {
   id: string;
   floor: number;
   type: EnemyType;
   name: string;
   maxHp: number;
-  atk: number;
   gold: number;
   xp: number;
   img?: string;
   desc: string;
-  bossTypes?: QuestionType[];
-  diceMap?: Record<string, string>;
+  actions: EnemyAction[];
+  pattern: EnemyPattern;
+  dropsCommandCard?: boolean;
+  dropsPotion?: boolean;
 }
+
+// ── Items ───────────────────────────────────────────────────────
 
 export type ItemType = 'POTION' | 'SHIELD' | 'SKIP' | 'SWAP';
 
@@ -28,13 +70,14 @@ export interface Item {
   effect: string;
 }
 
-export interface GridTile {
-  id: string;            // `${floor}-${row}-${col}`
-  row: number;
-  col: number;
+export interface GraphNode {
+  id: string;
   type: TileType;
-  enemy?: Enemy;         // monster / boss tiles
-  itemId?: string;       // chest tiles
+  layer: number;
+  xPct: number;
+  connections: string[];
+  enemy?: Enemy;
+  itemId?: string;
   shopItemIds?: string[];
   cleared: boolean;
 }
@@ -42,9 +85,8 @@ export interface GridTile {
 export interface FloorBoard {
   floorNumber: number;
   floorName: string;
-  width: number;
-  height: number;
-  tiles: GridTile[][];
+  nodes: GraphNode[];
+  layerCount: number;
 }
 
 export interface RestCard {
@@ -54,6 +96,8 @@ export interface RestCard {
   hpHeal: number;
   bonusXp?: number;
 }
+
+// ── Questions ───────────────────────────────────────────────────
 
 export interface Part1Question {
   id: string;
@@ -87,7 +131,7 @@ export interface Part4Question {
   sentence: string;
   beginWith: string;
   keyword: string;
-  answer: string | string[];  // multiple accepted forms
+  answer: string | string[];
   tip: string;
 }
 
@@ -113,18 +157,36 @@ export interface PlayerState {
   gold: number;
   inventory: InventoryItem[];
   activeEffects: ActiveEffect[];
+  commands: Command[];
 }
 
-export type CombatPhase = 'rolling' | 'swapping' | 'question' | 'result' | 'defeated';
+// ── Combat ──────────────────────────────────────────────────────
+
+export type CombatPhase =
+  | 'player-turn'    // player selects commands
+  | 'question'       // answering a question for a command
+  | 'result'         // feedback after answering
+  | 'enemy-turn'     // enemy action resolved, waiting for ack
+  | 'command-choice' // pick a new command card
+  | 'defeated';      // combat over (check enemyHp to determine win/loss)
 
 export interface CombatState {
   enemy: Enemy;
   enemyHp: number;
+  enemyBlock: number;
+  enemyStrength: number;
+  enemySequenceIndex: number;
+  playerBlock: number;
+  playerStrength: number;
+  energy: number;
+  usedCommandIds: string[];
   currentQuestion: Question | null;
   currentQuestionType: QuestionType | null;
-  diceRoll: number | null;
+  pendingCommand: Command | null;
   phase: CombatPhase;
   lastAnswerCorrect: boolean | null;
+  commandChoices: Command[] | null;
+  lastDieRoll: number | null;
   log: string[];
 }
 
@@ -141,7 +203,7 @@ export type GamePhase =
 
 export interface QuestionProgress {
   discovered: boolean;
-  strength: number;    // 0–5
+  strength: number;
   correct: number;
   incorrect: number;
 }
@@ -152,10 +214,14 @@ export interface ShopState {
   purchased: string[];
 }
 
+export const MAX_INVENTORY = 3;
+export const MAX_COMMANDS = 6;
+export const MAX_ENERGY = 3;
+
 export interface GameState {
   phase: GamePhase;
   currentFloor: number;
-  playerPos: { row: number; col: number };
+  playerNodeId: string;
   floorBoard: FloorBoard | null;
   shopPurchases: Record<string, string[]>;
   player: PlayerState;

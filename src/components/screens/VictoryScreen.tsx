@@ -33,7 +33,7 @@ export function VictoryScreen() {
         </div>
 
         <button className={styles.btn} onClick={resetGame}>
-          Play Again ⚔
+          Play Again 👹
         </button>
       </div>
     </div>

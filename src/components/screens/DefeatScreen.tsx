@@ -33,7 +33,7 @@ export function DefeatScreen() {
         </div>
 
         <button className={`${styles.btn} ${styles.dangerBtn}`} onClick={resetGame}>
-          Try Again ⚔
+          Try Again 👹
         </button>
       </div>
     </div>

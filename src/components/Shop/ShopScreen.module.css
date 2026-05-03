@@ -31,6 +31,17 @@
   color: var(--gold2);
 }
 
+.fullBanner {
+  font-family: 'Cinzel', serif;
+  font-size: 0.76rem;
+  color: var(--ember2);
+  border: 1px solid var(--ember);
+  border-radius: 4px;
+  padding: 7px 12px;
+  background: rgba(192,57,43,0.1);
+  text-align: center;
+}
+
 .items {
   display: flex;
   flex-direction: column;

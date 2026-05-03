@@ -28,12 +28,12 @@ export function TitleScreen() {
           <div className={styles.rule}><span>❄</span><span>Floor I — Multiple Choice Cloze (Part 1)</span></div>
           <div className={styles.rule}><span>🌿</span><span>Floor II — Open Cloze (Part 2)</span></div>
           <div className={styles.rule}><span>🔮</span><span>Floor III — Word Formation (Part 3)</span></div>
-          <div className={styles.rule}><span>⚔</span><span>Floor IV — Key Word Transformation (Part 4)</span></div>
+          <div className={styles.rule}><span>👹</span><span>Floor IV — Key Word Transformation (Part 4)</span></div>
           <div className={styles.rule}><span>🐉</span><span>Floor V — All Types · Face Bahamut</span></div>
         </div>
 
         <button className={styles.startBtn} onClick={startGame}>
-          Begin Your Quest ⚔
+          Begin Your Quest 👹
         </button>
 
         <button className={styles.codexBtn} onClick={openCodex}>
