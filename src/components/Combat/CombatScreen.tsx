@@ -3,7 +3,7 @@ import { useGameStore } from '../../store/gameStore';
 import type {
   Command, CommandEffect, QuestionType,
   Part1Question, Part2Question, Part3Question, Part4Question,
-  EnemyAction,
+  EnemyAction, BossCurse, BossAbility,
 } from '../../types';
 import styles from './CombatScreen.module.css';
 
@@ -56,11 +56,15 @@ export function CombatScreen() {
         {phase === 'player-turn' && (
           <PlayerTurnPanel
             commands={player.commands}
+            usedCommandIds={combat.usedCommandIds}
             energy={energy}
             onSelect={selectCommand}
             onEndTurn={endTurn}
             skipCharges={player.activeEffects.filter(e => e.kind === 'skip').reduce((a, e) => a + (e as any).charges, 0)}
             swapCharges={player.activeEffects.filter(e => e.kind === 'swap').reduce((a, e) => a + (e as any).charges, 0)}
+            bossCurse={combat.bossCurse ?? null}
+            bossTypeChanges={combat.bossTypeChanges ?? {}}
+            bossAbility={combat.enemy.bossAbility}
           />
         )}
 
@@ -275,46 +279,118 @@ function PlayerStatusBar({ block, strength, energy }: { block: number; strength:
 
 // ── Player turn panel (command hand) ────────────────────────────
 
+const Q_PART_NAMES: Record<QuestionType, string> = { t1: 'Part 1', t2: 'Part 2', t3: 'Part 3', t4: 'Part 4' };
+
+function BossCursePanel({ curse, bossAbility }: { curse: BossCurse | null; bossAbility?: BossAbility }) {
+  if (!curse && bossAbility?.kind !== 'bahamut') return null;
+  if (bossAbility?.kind === 'bahamut' && !curse) {
+    return <div className={styles.bossCurse}>🔥 <strong>BAHAMUT:</strong> Each command you cast transforms — type changes permanently.</div>;
+  }
+  if (!curse) return null;
+  switch (curse.kind) {
+    case 'disabled_type':
+      return <div className={styles.bossCurse}>🔒 <strong>ULTIMECIA:</strong> {Q_PART_NAMES[curse.qType]} commands are sealed this turn!</div>;
+    case 'energy_surge':
+      return <div className={styles.bossCurse}>❄ <strong>SHIVA:</strong> Commands at slots {curse.positions.map(p => p + 1).join(' & ')} cost +1 energy!</div>;
+    case 'type_override':
+      return <div className={styles.bossCurse}>💥 <strong>BEHEMOTH:</strong> All commands require {Q_PART_NAMES[curse.qType]} this turn!</div>;
+    case 'strength_leech':
+      return <div className={styles.bossCurse}>⚔ <strong>GABRANTH:</strong> Using {Q_PART_NAMES[curse.qType]} commands grants +2 Strength!</div>;
+  }
+}
+
 function PlayerTurnPanel({
-  commands, energy, onSelect, onEndTurn, skipCharges, swapCharges,
+  commands, usedCommandIds, energy, onSelect, onEndTurn, skipCharges, swapCharges,
+  bossCurse, bossTypeChanges, bossAbility,
 }: {
   commands: Command[];
+  usedCommandIds: string[];
   energy: number;
   onSelect: (id: string) => void;
   onEndTurn: () => void;
   skipCharges: number;
   swapCharges: number;
+  bossCurse: BossCurse | null;
+  bossTypeChanges: Record<string, QuestionType>;
+  bossAbility?: BossAbility;
 }) {
+  const [showDescs, setShowDescs] = useState(false);
+
   return (
     <div className={styles.playerTurn}>
-      <div className={styles.commandGrid}>
-        {commands.map(cmd => {
-          const tooExpensive = energy < cmd.energyCost;
-          const color = Q_TYPE_COLOR[cmd.questionType];
-          return (
-            <button
-              key={cmd.id}
-              className={`${styles.commandCard} ${tooExpensive ? styles.commandDisabled : ''}`}
-              onClick={() => !tooExpensive && onSelect(cmd.id)}
-              disabled={tooExpensive}
-              title={cmd.description}
-            >
-              <div className={styles.cmdHeader}>
-                <span className={styles.cmdName}>{cmd.name}{cmd.upgraded ? ' ★' : ''}</span>
-                <span className={styles.cmdCost} style={{ background: color }}>
-                  {Array.from({ length: cmd.energyCost }, (_, i) => <span key={i}>◆</span>)}
+      <BossCursePanel curse={bossCurse} bossAbility={bossAbility} />
+
+      {showDescs ? (
+        <div className={styles.descPanel}>
+          {commands.map(cmd => (
+            <div key={cmd.id} className={styles.descRow}>
+              <div className={styles.descRowHeader}>
+                <span className={styles.descRowName}>{cmd.name}{cmd.upgraded ? ' ★' : ''}</span>
+                <span className={styles.descRowType} style={{ color: Q_TYPE_COLOR[cmd.questionType] }}>
+                  {Q_TYPE_LABEL[cmd.questionType]}
                 </span>
               </div>
-              <div className={styles.cmdType} style={{ color }}>
-                {Q_TYPE_LABEL[cmd.questionType]}
-              </div>
-              <div className={styles.cmdEffects}>
-                {cmd.effects.map((eff, i) => <EffectPill key={i} effect={eff} />)}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              <p className={styles.descRowText}>{cmd.description}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.commandGrid}>
+          {commands.map((cmd, cmdIndex) => {
+            const effQType: QuestionType = bossCurse?.kind === 'type_override'
+              ? bossCurse.qType
+              : (bossTypeChanges[cmd.id] as QuestionType | undefined) ?? cmd.questionType;
+            const surged = bossCurse?.kind === 'energy_surge' && bossCurse.positions.includes(cmdIndex);
+            const effCost = cmd.energyCost + (surged ? 1 : 0);
+            const sealed = bossCurse?.kind === 'disabled_type' && bossCurse.qType === effQType;
+            const condemned = bossCurse?.kind === 'strength_leech' && bossCurse.qType === effQType;
+            const mutated = bossAbility?.kind === 'bahamut' && !!bossTypeChanges[cmd.id];
+            const tooExpensive = energy < effCost;
+            const usedOnce = !!cmd.oncePerTurn && usedCommandIds.includes(cmd.id);
+            const loneWolfBlocked = !!cmd.uniqueType && commands.some(c => {
+              if (c.id === cmd.id) return false;
+              const ct = bossCurse?.kind === 'type_override' ? bossCurse.qType : (bossTypeChanges[c.id] as QuestionType | undefined) ?? c.questionType;
+              return ct === effQType;
+            });
+            const disabled = sealed || tooExpensive || loneWolfBlocked || usedOnce;
+            const color = Q_TYPE_COLOR[effQType];
+            return (
+              <button
+                key={cmd.id}
+                className={[
+                  styles.commandCard,
+                  disabled ? styles.commandDisabled : '',
+                  sealed ? styles.commandSealed : '',
+                  condemned ? styles.commandCondemned : '',
+                  mutated ? styles.commandMutated : '',
+                ].join(' ')}
+                onClick={() => !disabled && onSelect(cmd.id)}
+                disabled={disabled}
+              >
+                <div className={styles.cmdHeader}>
+                  <span className={styles.cmdName}>{cmd.name}{cmd.upgraded ? ' ★' : ''}</span>
+                  <span className={styles.cmdCost} style={{ background: color }}>
+                    {Array.from({ length: effCost }, (_, i) => <span key={i}>◆</span>)}
+                    {surged && <span className={styles.surgePlus}>!</span>}
+                  </span>
+                </div>
+                <div className={styles.cmdType} style={{ color }}>
+                  {Q_TYPE_LABEL[effQType]}
+                  {mutated && ' 🔥'}
+                </div>
+                <div className={styles.cmdEffects}>
+                  <EffectsDisplay effects={cmd.effects} />
+                </div>
+                {sealed    && <div className={styles.sealedOverlay}>🔒 Sealed</div>}
+                {usedOnce  && <div className={styles.sealedOverlay}>⚡ Used</div>}
+                {loneWolfBlocked && !usedOnce && <div className={styles.sealedOverlay}>🐺 Not alone</div>}
+                {condemned && <div className={styles.condemnedBadge}>⚔ +2 STR</div>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className={styles.endTurnRow}>
         {(skipCharges > 0 || swapCharges > 0) && (
           <div className={styles.activeItems}>
@@ -322,6 +398,13 @@ function PlayerTurnPanel({
             {swapCharges > 0 && <span className={styles.itemBadge}>🔮 Swap ×{swapCharges}</span>}
           </div>
         )}
+        <button
+          className={styles.inspectBtn}
+          onClick={() => setShowDescs(v => !v)}
+          title="Read command descriptions"
+        >
+          {showDescs ? '🗡 Hand' : '📖 Read'}
+        </button>
         <button className={styles.endTurnBtn} onClick={onEndTurn}>
           End Turn ▶
         </button>
@@ -330,11 +413,29 @@ function PlayerTurnPanel({
   );
 }
 
-function EffectPill({ effect }: { effect: CommandEffect }) {
-  if (effect.kind === 'attack')   return <span className={styles.effAtk}>⚔ {effect.damage}</span>;
-  if (effect.kind === 'block')    return <span className={styles.effBlk}>🛡 {effect.amount}</span>;
-  if (effect.kind === 'strength') return <span className={styles.effStr}>💪 {effect.amount}</span>;
-  return null;
+function EffectsDisplay({ effects }: { effects: CommandEffect[] }) {
+  type Group = { kind: 'attack' | 'block' | 'strength'; value: number; count: number };
+  const groups: Group[] = [];
+  for (const eff of effects) {
+    const value = eff.kind === 'attack' ? eff.damage : eff.kind === 'block' ? eff.amount : eff.amount;
+    const last = groups[groups.length - 1];
+    if (last && last.kind === eff.kind && last.value === value) {
+      last.count++;
+    } else {
+      groups.push({ kind: eff.kind, value, count: 1 });
+    }
+  }
+  return (
+    <>
+      {groups.map((g, i) => {
+        const label = g.count > 1 ? `${g.count}×${g.value}` : `${g.value}`;
+        if (g.kind === 'attack')   return <span key={i} className={styles.effAtk}>⚔ {label}</span>;
+        if (g.kind === 'block')    return <span key={i} className={styles.effBlk}>🛡 {label}</span>;
+        if (g.kind === 'strength') return <span key={i} className={styles.effStr}>💪 +{label}</span>;
+        return null;
+      })}
+    </>
+  );
 }
 
 // ── Question panel ───────────────────────────────────────────────
@@ -605,7 +706,7 @@ function CommandChoicePanel({
                 {Q_TYPE_LABEL[cmd.questionType]}
               </div>
               <div className={styles.cmdEffects}>
-                {cmd.effects.map((eff, i) => <EffectPill key={i} effect={eff} />)}
+                <EffectsDisplay effects={cmd.effects} />
               </div>
             </button>
           ))}
@@ -640,7 +741,7 @@ function CommandChoicePanel({
               {Q_TYPE_LABEL[cmd.questionType]}
             </div>
             <div className={styles.cmdEffects}>
-              {cmd.effects.map((eff, j) => <EffectPill key={j} effect={eff} />)}
+              <EffectsDisplay effects={cmd.effects} />
             </div>
             <p className={styles.cmdDesc}>{cmd.description}</p>
           </button>
@@ -672,8 +773,14 @@ function DefeatedPanel({ enemyName, onContinue }: {
 
 function getCorrectAnswerText(q: any): string {
   if (q.type === 't1') return (q as Part1Question).answer;
-  if (q.type === 't2') return (q as Part2Question).answer;
-  if (q.type === 't3') return (q as Part3Question).answer;
+  if (q.type === 't2') {
+    const a = (q as Part2Question).answer;
+    return Array.isArray(a) ? a.join(' / ') : a;
+  }
+  if (q.type === 't3') {
+    const a = (q as Part3Question).answer;
+    return Array.isArray(a) ? a.join(' / ') : a;
+  }
   if (q.type === 't4') {
     const p = q as Part4Question;
     const ans = Array.isArray(p.answer) ? p.answer[0] : p.answer;

@@ -1,4 +1,4 @@
-import type { FloorBoard, GraphNode, Enemy, QuestionType, TileType, EnemyAction, EnemyActionEffect, EnemyPattern } from '../types';
+import type { FloorBoard, GraphNode, Enemy, QuestionType, TileType, EnemyAction, EnemyActionEffect, EnemyPattern, EventKind } from '../types';
 
 const BASE = 'https://static.wikia.nocookie.net/exvius_gamepedia_en/images/';
 function img(path: string) { return `${BASE}${path}/revision/latest`; }
@@ -106,6 +106,7 @@ const FLOOR_CONFIGS: Record<number, FloorConfig> = {
         act('chill',    '💨', 'Chill — Strengthen 1', [{ kind: 'strengthen', amount: 1 }]),
       ],
       pattern: { kind: 'sequence', actionIds: ['barrier', 'freeze', 'freeze', 'blizzard', 'chill', 'freeze'] },
+      bossAbility: { kind: 'shiva' },
     },
   },
   2: {
@@ -133,6 +134,7 @@ const FLOOR_CONFIGS: Record<number, FloorConfig> = {
         act('crush',   '💥',  'Crush — Attack 13',     [{ kind: 'attack',    damage: 13 }]),
       ],
       pattern: { kind: 'sequence', actionIds: ['slam', 'fortify', 'slam', 'bulk', 'crush', 'slam'] },
+      bossAbility: { kind: 'behemoth' },
     },
   },
   3: {
@@ -160,6 +162,7 @@ const FLOOR_CONFIGS: Record<number, FloorConfig> = {
         act('barrier',  '🛡', 'Null Ward — Block 10',   [{ kind: 'block',     amount: 10 }]),
       ],
       pattern: { kind: 'dice', faceMap: { 1: 'haste', 2: 'timeslip', 3: 'timeslip', 4: 'timelock', 5: 'barrier', 6: 'haste' } },
+      bossAbility: { kind: 'ultimecia' },
     },
   },
   4: {
@@ -187,6 +190,7 @@ const FLOOR_CONFIGS: Record<number, FloorConfig> = {
         act('sentence','💥',  'Final Sentence — Attack 16', [{ kind: 'attack', damage: 16 }]),
       ],
       pattern: { kind: 'sequence', actionIds: ['judge', 'condemn', 'parry', 'judge', 'sentence', 'judge'] },
+      bossAbility: { kind: 'gabranth' },
     },
   },
   5: {
@@ -214,26 +218,38 @@ const FLOOR_CONFIGS: Record<number, FloorConfig> = {
         act('megaflare', '🔥', 'Megaflare — Attack 20',   [{ kind: 'attack',    damage: 20 }]),
       ],
       pattern: { kind: 'sequence', actionIds: ['claw', 'dread', 'scale', 'megaflare', 'claw', 'claw', 'megaflare'] },
+      bossAbility: { kind: 'bahamut' },
     },
   },
 };
 
 const ALL_Q_TYPES: QuestionType[] = ['t1', 't2', 't3', 't4'];
+const ALL_EVENT_KINDS: EventKind[] = [
+  'potion-trade', 'command-upgrade', 'cursed-mirror',
+  'ancient-altar', 'dark-ritual', 'enemy-encounter',
+];
+
+export function generateRandomEnemy(floorNumber: number): Enemy {
+  const cfg = FLOOR_CONFIGS[floorNumber];
+  const idx = Math.floor(Math.random() * cfg.enemyPool.length);
+  const nodeId = `event-${floorNumber}-${Date.now()}`;
+  return makeEnemy(floorNumber, nodeId, idx);
+}
 
 const CHEST_ITEM_POOLS: Record<number, string[]> = {
-  1: ['i3', 'i6', 'i4', 'i1'],
-  2: ['i1', 'i4', 'i5', 'i6', 'i3'],
-  3: ['i1', 'i5', 'i7', 'i8', 'i4'],
-  4: ['i2', 'i7', 'i8', 'i9', 'i12'],
-  5: ['i2', 'i10', 'i9', 'i12', 'i11'],
+  1: ['i3', 'i5', 'i1'],
+  2: ['i3', 'i4', 'i1', 'i5'],
+  3: ['i4', 'i3', 'i2', 'i1', 'i5'],
+  4: ['i4', 'i2', 'i6', 'i1', 'i5'],
+  5: ['i2', 'i4', 'i6', 'i1', 'i5'],
 };
 
 const SHOP_ITEM_POOLS: Record<number, string[]> = {
-  1: ['i1', 'i3', 'i4', 'i6', 'i5'],
-  2: ['i1', 'i3', 'i4', 'i5', 'i6', 'i7'],
-  3: ['i1', 'i4', 'i5', 'i6', 'i7', 'i8', 'i11'],
-  4: ['i2', 'i5', 'i7', 'i8', 'i9', 'i12', 'i11'],
-  5: ['i2', 'i7', 'i8', 'i9', 'i10', 'i11', 'i12'],
+  1: ['i1', 'i3', 'i5'],
+  2: ['i1', 'i3', 'i4', 'i5', 'i6'],
+  3: ['i1', 'i3', 'i4', 'i2', 'i5', 'i6'],
+  4: ['i1', 'i4', 'i2', 'i5', 'i6'],
+  5: ['i1', 'i4', 'i2', 'i6', 'i5'],
 };
 
 const X_POSITIONS: Record<number, number[]> = {
@@ -319,6 +335,10 @@ export function generateFloor(floorNumber: number): FloorBoard {
   let monsterIdx = 0;
   let chestIdx   = 0;
 
+  // One event room per floor: pick a random layer (1–6) and a random event kind
+  const eventLayer = rand(1, 6);
+  const eventKind  = pickRandom(ALL_EVENT_KINDS);
+
   const allNodes: GraphNode[] = [];
   const layerNodes: GraphNode[][] = [];
 
@@ -330,7 +350,15 @@ export function generateFloor(floorNumber: number): FloorBoard {
   layerNodes.push([startNode]);
 
   for (let l = 1; l <= 6; l++) {
-    const types = shuffle([...LAYER_TYPE_TEMPLATES[l - 1]]);
+    const rawTypes = shuffle([...LAYER_TYPE_TEMPLATES[l - 1]]);
+
+    // Inject event room: replace first 'monster' in the chosen layer
+    if (l === eventLayer) {
+      const mi = rawTypes.indexOf('monster');
+      if (mi !== -1) rawTypes[mi] = 'event';
+    }
+
+    const types = rawTypes;
     const xPositions = X_POSITIONS[types.length];
     const layer: GraphNode[] = [];
 
@@ -344,6 +372,8 @@ export function generateFloor(floorNumber: number): FloorBoard {
         base.itemId = chestPool[chestIdx++ % chestPool.length];
       } else if (type === 'shop') {
         base.shopItemIds = shuffle(SHOP_ITEM_POOLS[floorNumber]).slice(0, 4);
+      } else if (type === 'event') {
+        base.eventKind = eventKind;
       }
 
       layer.push(base);

@@ -159,10 +159,7 @@ export const PART4: Part4Question[] = [
     sentence: "\"I'm sorry I didn't call you,\" he said to her.",
     beginWith: "He",
     keyword: "APOLOGISED",
-    answer: [
-      "apologised for not calling her",
-      "apologized for not calling her",
-    ],
+    answer: ["apologised for not calling her"],
     tip: "Reported apology → apologise + for + -ing.",
   },
   {
@@ -269,9 +266,7 @@ export const PART4: Part4Question[] = [
     keyword: "WOULD",
     answer: [
       "been interested in it, I would have studied medicine",
-      "been interested in it, I'd have studied medicine",
       "been interested in it I would have studied medicine",
-      "been interested in it I'd have studied medicine",
     ],
     tip: "Third conditional — past perfect in the if-clause.",
   },
@@ -550,7 +545,7 @@ export const PART4: Part4Question[] = [
     sentence: '"I didn\'t steal the money," he said.',
     beginWith: "He denied",
     keyword: "STEALING",
-    answer: ["stealing the money", "having stolen the money"],
+    answer: ["stealing the money"],
     tip: "Reported denial → deny + -ing (or having + pp).",
   },
   {
@@ -595,11 +590,7 @@ export const PART4: Part4Question[] = [
     sentence: '"You should eat more fruit," the doctor told her.',
     beginWith: "The doctor recommended",
     keyword: "EATING",
-    answer: [
-      "eating more fruit",
-      "that she eat more fruit",
-      "that she should eat more fruit",
-    ],
+    answer: ["eating more fruit"],
     tip: "Reported recommendation → recommend + -ing or that + (should) + bare infinitive.",
   },
   {
@@ -742,14 +733,15 @@ export const PART4: Part4Question[] = [
     id: "q4-71",
     type: "t4",
     sentence: "I didn't bring my umbrella and I got soaked.",
-    beginWith: "If I had",
+    beginWith: "If I had brought my umbrella, I",
     keyword: "WOULD",
     answer: [
-      "brought my umbrella, I wouldn't have got soaked",
-      "brought my umbrella, I wouldn't have gotten soaked",
-      "brought my umbrella, I would not have got soaked",
+      "wouldn't have got soaked",
+      "wouldn't have gotten soaked",
+      "would not have got soaked",
+      "would not have gotten soaked",
     ],
-    tip: "Third conditional — past perfect in if-clause.",
+    tip: "Third conditional: if + past perfect → would(n't) have + past participle.",
   },
   {
     id: "q4-72",
@@ -1021,10 +1013,7 @@ export const PART4: Part4Question[] = [
     sentence: "If only he hadn't said that in front of everyone.",
     beginWith: "He regrets",
     keyword: "SAID",
-    answer: [
-      "having said that in front of everyone",
-      "saying that in front of everyone",
-    ],
+    answer: ["having said that in front of everyone"],
     tip: "If only + past perfect → regret + having + past participle.",
   },
 
@@ -1562,7 +1551,6 @@ export const PART4: Part4Question[] = [
     answer: [
       "has not yet been made about where to hold the event",
       "hasn't yet been made about where to hold the event",
-      "has yet to be made about where to hold the event",
     ],
     tip: 'Present perfect passive: has not been made; or "has yet to be".',
   },
@@ -1611,14 +1599,11 @@ export const PART4: Part4Question[] = [
   {
     id: "q4-150",
     type: "t4",
-    sentence:
-      "She didn't know the correct pronunciation until she heard the audio.",
-    beginWith: "It was",
+    sentence: "Don't leave before I get back.",
+    beginWith: "Wait",
     keyword: "UNTIL",
-    answer: [
-      "not until she heard the audio that she knew the correct pronunciation",
-    ],
-    tip: '"It was not until + clause + that" — cleft sentence with "not until".',
+    answer: ["until I get back"],
+    tip: '"Don\'t leave before" → "wait until" — temporal boundary expressed with "until".',
   },
 
   // ── Further mixed exam-style questions ────────────────────────────────────
@@ -1823,7 +1808,7 @@ export const PART4: Part4Question[] = [
     sentence: "The noise was so loud that she couldn't sleep.",
     beginWith: "The noise prevented",
     keyword: "SLEEPING",
-    answer: ["her from sleeping", "her from getting to sleep"],
+    answer: ["her from sleeping"],
     tip: '"So loud that she couldn\'t" → "prevented + object + from + -ing".',
   },
   {
@@ -1912,10 +1897,7 @@ export const PART4: Part4Question[] = [
     sentence: '"Make sure you arrive on time," she told her team.',
     beginWith: "She told her team",
     keyword: "ARRIVE",
-    answer: [
-      "to make sure they arrived on time",
-      "to make sure to arrive on time",
-    ],
+    answer: ["to make sure to arrive on time"],
     tip: "Reported instruction: tell + object + to-infinitive.",
   },
   {

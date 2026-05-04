@@ -78,34 +78,46 @@ export function getBossQuestionType(roll: number, enemy: { diceMap?: Record<stri
 }
 
 function normalise(s: string): string {
-  return s.trim().toLowerCase().replace(/['']/g, "'").replace(/\s+/g, ' ');
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/['']/g, "'")
+    .replace(/\bwon't\b/g, 'will not')
+    .replace(/\bcan't\b/g, 'cannot')
+    .replace(/\bshan't\b/g, 'shall not')
+    .replace(/n't\b/g, ' not')
+    .replace(/\bi'm\b/g, 'i am')
+    .replace(/'re\b/g, ' are')
+    .replace(/'ve\b/g, ' have')
+    .replace(/'ll\b/g, ' will')
+    .replace(/\s+/g, ' ');
+}
+
+function getAccepted(answer: string | string[]): string[] {
+  const raw = Array.isArray(answer) ? answer : [answer];
+  return raw.map(a => normalise(a));
 }
 
 export function checkAnswer(question: Question, userInput: string): boolean {
   const input = normalise(userInput);
 
   if (question.type === 't1') {
-    const q = question as Part1Question;
     const letter = input.replace(/[^a-d]/g, '');
-    return letter === q.answer.toLowerCase();
+    return letter === (question as Part1Question).answer.toLowerCase();
   }
 
   if (question.type === 't2') {
-    const q = question as Part2Question;
-    const accepted = q.answer.split('/').map(a => normalise(a));
+    const accepted = getAccepted((question as Part2Question).answer);
     return accepted.some(a => input === a);
   }
 
   if (question.type === 't3') {
-    const q = question as Part3Question;
-    const accepted = q.answer.split('/').map(a => normalise(a));
+    const accepted = getAccepted((question as Part3Question).answer);
     return accepted.some(a => input === a);
   }
 
   if (question.type === 't4') {
-    const q = question as Part4Question;
-    const raw = Array.isArray(q.answer) ? q.answer : q.answer.split('/');
-    const accepted = raw.map(a => normalise(a));
+    const accepted = getAccepted((question as Part4Question).answer);
     return accepted.some(a => input === a || input.includes(a));
   }
 

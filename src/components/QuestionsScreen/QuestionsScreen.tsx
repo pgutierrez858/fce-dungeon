@@ -84,17 +84,20 @@ function QuestionDetail({ question, prog, onClose }: {
           </>
         );
       }
-      case 't2':
+      case 't2': {
+        const a2 = question.answer;
         return (
           <>
             <p className={styles.detailSentence}>{question.sentence}</p>
             <div className={styles.detailAnswer}>
-              Answer: <strong>{question.answer as string}</strong>
+              Answer: <strong>{Array.isArray(a2) ? a2.join(' / ') : a2}</strong>
             </div>
           </>
         );
+      }
       case 't3': {
         const q = question as Part3Question;
+        const a3 = q.answer;
         return (
           <>
             <p className={styles.detailSentence}>{q.sentence}</p>
@@ -102,7 +105,7 @@ function QuestionDetail({ question, prog, onClose }: {
               Stem: <strong>{q.stem}</strong>
             </div>
             <div className={styles.detailAnswer}>
-              Answer: <strong>{q.answer}</strong>
+              Answer: <strong>{Array.isArray(a3) ? a3.join(' / ') : a3}</strong>
             </div>
           </>
         );

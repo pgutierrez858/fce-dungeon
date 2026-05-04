@@ -1,6 +1,6 @@
 export type QuestionType = 't1' | 't2' | 't3' | 't4';
 export type EnemyType = QuestionType | 'boss' | 'final';
-export type TileType = 'start' | 'monster' | 'chest' | 'rest' | 'shop' | 'boss';
+export type TileType = 'start' | 'monster' | 'chest' | 'rest' | 'shop' | 'boss' | 'event';
 
 // ── Commands ────────────────────────────────────────────────────
 
@@ -20,6 +20,8 @@ export interface Command {
   upgraded: boolean;
   description: string;
   upgradedDescription: string;
+  uniqueType?: boolean;
+  oncePerTurn?: boolean;
 }
 
 // ── Enemy ───────────────────────────────────────────────────────
@@ -41,6 +43,19 @@ export type EnemyPattern =
   | { kind: 'sequence'; actionIds: string[] }
   | { kind: 'dice'; faceMap: Record<number, string> };
 
+export type BossAbility =
+  | { kind: 'ultimecia' }
+  | { kind: 'shiva' }
+  | { kind: 'behemoth' }
+  | { kind: 'gabranth' }
+  | { kind: 'bahamut' };
+
+export type BossCurse =
+  | { kind: 'disabled_type'; qType: QuestionType }
+  | { kind: 'energy_surge'; positions: number[] }
+  | { kind: 'type_override'; qType: QuestionType }
+  | { kind: 'strength_leech'; qType: QuestionType };
+
 export interface Enemy {
   id: string;
   floor: number;
@@ -55,11 +70,12 @@ export interface Enemy {
   pattern: EnemyPattern;
   dropsCommandCard?: boolean;
   dropsPotion?: boolean;
+  bossAbility?: BossAbility;
 }
 
 // ── Items ───────────────────────────────────────────────────────
 
-export type ItemType = 'POTION' | 'SHIELD' | 'SKIP' | 'SWAP';
+export type ItemType = 'FIRE_POTION' | 'FAIRY' | 'POTION' | 'HIGH_POTION' | 'BLOCK_POTION' | 'STRENGTH_POTION';
 
 export interface Item {
   id: string;
@@ -68,6 +84,21 @@ export interface Item {
   type: ItemType;
   cost: number;
   effect: string;
+}
+
+// ── Events ──────────────────────────────────────────────────────
+
+export type EventKind =
+  | 'potion-trade'      // sell all potions for 10g each (refusable)
+  | 'command-upgrade'   // lose all gold, upgrade a command (refusable)
+  | 'cursed-mirror'     // remove random command; pay 5HP to reroll
+  | 'ancient-altar'     // +15 XP, -5 HP (refusable)
+  | 'dark-ritual'       // heal to full, -20% max HP (forced)
+  | 'enemy-encounter';  // random enemy fight (forced)
+
+export interface EventState {
+  kind: EventKind;
+  targetCommandId?: string; // cursed-mirror: which command is slated for removal
 }
 
 export interface GraphNode {
@@ -79,6 +110,7 @@ export interface GraphNode {
   enemy?: Enemy;
   itemId?: string;
   shopItemIds?: string[];
+  eventKind?: EventKind;
   cleared: boolean;
 }
 
@@ -112,7 +144,7 @@ export interface Part2Question {
   id: string;
   type: 't2';
   sentence: string;
-  answer: string;
+  answer: string | string[];
   tip: string;
 }
 
@@ -121,7 +153,7 @@ export interface Part3Question {
   type: 't3';
   sentence: string;
   stem: string;
-  answer: string;
+  answer: string | string[];
   tip: string;
 }
 
@@ -187,6 +219,8 @@ export interface CombatState {
   lastAnswerCorrect: boolean | null;
   commandChoices: Command[] | null;
   lastDieRoll: number | null;
+  bossCurse: BossCurse | null;
+  bossTypeChanges: Record<string, QuestionType>;
   log: string[];
 }
 
@@ -197,6 +231,7 @@ export type GamePhase =
   | 'shop'
   | 'rest'
   | 'chest'
+  | 'event'
   | 'questions'
   | 'victory'
   | 'defeat';
@@ -229,5 +264,6 @@ export interface GameState {
   shopState: ShopState | null;
   currentRest: RestCard | null;
   currentChestItemId: string | null;
+  currentEvent: EventState | null;
   questionProgress: Record<string, QuestionProgress>;
 }

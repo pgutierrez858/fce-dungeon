@@ -1,6 +1,6 @@
-import type { Command, CommandEffect, QuestionType } from '../types';
+import type { Command, CommandEffect, QuestionType } from "../types";
 
-const Q_TYPES: QuestionType[] = ['t1', 't2', 't3', 't4'];
+const Q_TYPES: QuestionType[] = ["t1", "t2", "t3", "t4"];
 
 function randQType(): QuestionType {
   return Q_TYPES[Math.floor(Math.random() * 4)];
@@ -19,9 +19,14 @@ export interface CommandTemplate {
   upgradeCost: number;
   description: string;
   upgradedDescription: string;
+  uniqueType?: boolean;
+  oncePerTurn?: boolean;
 }
 
-export function instantiateTemplate(tpl: CommandTemplate, qt?: QuestionType): Command {
+export function instantiateTemplate(
+  tpl: CommandTemplate,
+  qt?: QuestionType,
+): Command {
   const qType = qt ?? randQType();
   return {
     id: `${tpl.baseId}-${qType}-${uid()}`,
@@ -34,142 +39,334 @@ export function instantiateTemplate(tpl: CommandTemplate, qt?: QuestionType): Co
     upgraded: false,
     description: tpl.description,
     upgradedDescription: tpl.upgradedDescription,
+    ...(tpl.uniqueType   ? { uniqueType: true }   : {}),
+    ...(tpl.oncePerTurn  ? { oncePerTurn: true }  : {}),
   };
 }
 
 const STRIKE_TPL: CommandTemplate = {
-  baseId: 'strike',
-  name: 'Strike',
+  baseId: "strike",
+  name: "Strike",
   energyCost: 1,
-  effects: [{ kind: 'attack', damage: 6 }],
-  upgradedEffects: [{ kind: 'attack', damage: 9 }],
+  effects: [{ kind: "attack", damage: 6 }],
+  upgradedEffects: [{ kind: "attack", damage: 9 }],
   upgradeCost: 15,
-  description: 'Deal 6 damage.',
-  upgradedDescription: 'Deal 9 damage.',
+  description: "Deal 6 damage.",
+  upgradedDescription: "Deal 9 damage.",
 };
 
 const DEFEND_TPL: CommandTemplate = {
-  baseId: 'defend',
-  name: 'Defend',
+  baseId: "defend",
+  name: "Defend",
   energyCost: 1,
-  effects: [{ kind: 'block', amount: 5 }],
-  upgradedEffects: [{ kind: 'block', amount: 8 }],
+  effects: [{ kind: "block", amount: 5 }],
+  upgradedEffects: [{ kind: "block", amount: 8 }],
   upgradeCost: 15,
-  description: 'Gain 5 block.',
-  upgradedDescription: 'Gain 8 block.',
+  description: "Gain 5 block.",
+  upgradedDescription: "Gain 8 block.",
 };
 
 export function makeStartingCommands(): Command[] {
   const atkType = randQType();
   let defType: QuestionType;
-  do { defType = randQType(); } while (defType === atkType);
-  return [instantiateTemplate(STRIKE_TPL, atkType), instantiateTemplate(DEFEND_TPL, defType)];
+  do {
+    defType = randQType();
+  } while (defType === atkType);
+  return [
+    instantiateTemplate(STRIKE_TPL, atkType),
+    instantiateTemplate(DEFEND_TPL, defType),
+  ];
 }
 
 export const COMMAND_POOL: CommandTemplate[] = [
   {
-    baseId: 'power-strike',
-    name: 'Power Strike',
+    baseId: "power-strike",
+    name: "Power Strike",
     energyCost: 2,
-    effects: [{ kind: 'attack', damage: 12 }],
-    upgradedEffects: [{ kind: 'attack', damage: 16 }],
+    effects: [{ kind: "attack", damage: 12 }],
+    upgradedEffects: [{ kind: "attack", damage: 16 }],
     upgradeCost: 25,
-    description: 'Deal 12 damage.',
-    upgradedDescription: 'Deal 16 damage.',
+    description: "Deal 12 damage.",
+    upgradedDescription: "Deal 16 damage.",
   },
   {
-    baseId: 'bulwark',
-    name: 'Bulwark',
+    baseId: "bulwark",
+    name: "Bulwark",
     energyCost: 2,
-    effects: [{ kind: 'block', amount: 10 }],
-    upgradedEffects: [{ kind: 'block', amount: 14 }],
+    effects: [{ kind: "block", amount: 10 }],
+    upgradedEffects: [{ kind: "block", amount: 14 }],
     upgradeCost: 25,
-    description: 'Gain 10 block.',
-    upgradedDescription: 'Gain 14 block.',
+    description: "Gain 10 block.",
+    upgradedDescription: "Gain 14 block.",
   },
   {
-    baseId: 'war-cry',
-    name: 'War Cry',
+    baseId: "war-cry",
+    name: "War Cry",
     energyCost: 1,
-    effects: [{ kind: 'strength', amount: 3 }],
-    upgradedEffects: [{ kind: 'strength', amount: 4 }],
+    effects: [{ kind: "strength", amount: 3 }],
+    upgradedEffects: [{ kind: "strength", amount: 4 }],
     upgradeCost: 30,
-    description: 'Gain 3 Strength this combat.',
-    upgradedDescription: 'Gain 4 Strength this combat.',
+    description: "Gain 3 Strength this combat.",
+    upgradedDescription: "Gain 4 Strength this combat.",
   },
   {
-    baseId: 'bash',
-    name: 'Bash',
+    baseId: "bash",
+    name: "Bash",
     energyCost: 2,
-    effects: [{ kind: 'attack', damage: 8 }, { kind: 'strength', amount: 2 }],
-    upgradedEffects: [{ kind: 'attack', damage: 10 }, { kind: 'strength', amount: 3 }],
+    effects: [
+      { kind: "attack", damage: 8 },
+      { kind: "strength", amount: 2 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 10 },
+      { kind: "strength", amount: 3 },
+    ],
     upgradeCost: 30,
-    description: 'Deal 8 damage. Gain 2 Strength.',
-    upgradedDescription: 'Deal 10 damage. Gain 3 Strength.',
+    description: "Deal 8 damage. Gain 2 Strength.",
+    upgradedDescription: "Deal 10 damage. Gain 3 Strength.",
   },
   {
-    baseId: 'iron-skin',
-    name: 'Iron Skin',
+    baseId: "iron-skin",
+    name: "Iron Skin",
     energyCost: 2,
-    effects: [{ kind: 'block', amount: 6 }, { kind: 'strength', amount: 2 }],
-    upgradedEffects: [{ kind: 'block', amount: 8 }, { kind: 'strength', amount: 3 }],
+    effects: [
+      { kind: "block", amount: 6 },
+      { kind: "strength", amount: 2 },
+    ],
+    upgradedEffects: [
+      { kind: "block", amount: 8 },
+      { kind: "strength", amount: 3 },
+    ],
     upgradeCost: 30,
-    description: 'Gain 6 block and 2 Strength.',
-    upgradedDescription: 'Gain 8 block and 3 Strength.',
+    description: "Gain 6 block and 2 Strength.",
+    upgradedDescription: "Gain 8 block and 3 Strength.",
   },
   {
-    baseId: 'rally',
-    name: 'Rally',
+    baseId: "rally",
+    name: "Rally",
     energyCost: 1,
-    effects: [{ kind: 'block', amount: 3 }, { kind: 'strength', amount: 1 }],
-    upgradedEffects: [{ kind: 'block', amount: 4 }, { kind: 'strength', amount: 2 }],
+    effects: [
+      { kind: "block", amount: 3 },
+      { kind: "strength", amount: 1 },
+    ],
+    upgradedEffects: [
+      { kind: "block", amount: 4 },
+      { kind: "strength", amount: 2 },
+    ],
     upgradeCost: 20,
-    description: 'Gain 3 block and 1 Strength.',
-    upgradedDescription: 'Gain 4 block and 2 Strength.',
+    description: "Gain 3 block and 1 Strength.",
+    upgradedDescription: "Gain 4 block and 2 Strength.",
   },
   {
-    baseId: 'havoc',
-    name: 'Havoc',
+    baseId: "havoc",
+    name: "Havoc",
     energyCost: 3,
-    effects: [{ kind: 'attack', damage: 20 }],
-    upgradedEffects: [{ kind: 'attack', damage: 26 }],
+    effects: [{ kind: "attack", damage: 20 }],
+    upgradedEffects: [{ kind: "attack", damage: 26 }],
     upgradeCost: 40,
-    description: 'Deal 20 damage.',
-    upgradedDescription: 'Deal 26 damage.',
+    description: "Deal 20 damage.",
+    upgradedDescription: "Deal 26 damage.",
   },
   {
-    baseId: 'fortify',
-    name: 'Fortify',
+    baseId: "fortify",
+    name: "Fortify",
     energyCost: 3,
-    effects: [{ kind: 'block', amount: 16 }],
-    upgradedEffects: [{ kind: 'block', amount: 22 }],
+    effects: [{ kind: "block", amount: 16 }],
+    upgradedEffects: [{ kind: "block", amount: 22 }],
     upgradeCost: 40,
-    description: 'Gain 16 block.',
-    upgradedDescription: 'Gain 22 block.',
+    description: "Gain 16 block.",
+    upgradedDescription: "Gain 22 block.",
   },
   {
-    baseId: 'battle-stance',
-    name: 'Battle Stance',
+    baseId: "battle-stance",
+    name: "Battle Stance",
     energyCost: 1,
-    effects: [{ kind: 'strength', amount: 2 }, { kind: 'block', amount: 4 }],
-    upgradedEffects: [{ kind: 'strength', amount: 3 }, { kind: 'block', amount: 5 }],
+    effects: [
+      { kind: "strength", amount: 2 },
+      { kind: "block", amount: 4 },
+    ],
+    upgradedEffects: [
+      { kind: "strength", amount: 3 },
+      { kind: "block", amount: 5 },
+    ],
     upgradeCost: 30,
-    description: 'Gain 2 Strength and 4 block.',
-    upgradedDescription: 'Gain 3 Strength and 5 block.',
+    description: "Gain 2 Strength and 4 block.",
+    upgradedDescription: "Gain 3 Strength and 5 block.",
   },
   {
-    baseId: 'sword-dance',
-    name: 'Sword Dance',
+    baseId: "sword-dance",
+    name: "Sword Dance",
     energyCost: 2,
-    effects: [{ kind: 'attack', damage: 7 }, { kind: 'block', amount: 7 }],
-    upgradedEffects: [{ kind: 'attack', damage: 9 }, { kind: 'block', amount: 9 }],
+    effects: [
+      { kind: "attack", damage: 7 },
+      { kind: "block", amount: 7 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 9 },
+      { kind: "block", amount: 9 },
+    ],
     upgradeCost: 30,
-    description: 'Deal 7 damage and gain 7 block.',
-    upgradedDescription: 'Deal 9 damage and gain 9 block.',
+    description: "Deal 7 damage and gain 7 block.",
+    upgradedDescription: "Deal 9 damage and gain 9 block.",
+  },
+  {
+    baseId: "rapid-strike",
+    name: "Rapid Strike",
+    energyCost: 1,
+    effects: [
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 4 },
+      { kind: "attack", damage: 4 },
+      { kind: "attack", damage: 4 },
+    ],
+    upgradeCost: 20,
+    description: "Deal 3 damage three times. (Great with Strength)",
+    upgradedDescription: "Deal 4 damage three times.",
+  },
+  {
+    baseId: "twin-slash",
+    name: "Twin Slash",
+    energyCost: 2,
+    effects: [
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 8 },
+      { kind: "attack", damage: 8 },
+    ],
+    upgradeCost: 25,
+    description: "Deal 6 damage twice.",
+    upgradedDescription: "Deal 8 damage twice.",
+  },
+  {
+    baseId: "iron-rain",
+    name: "Iron Rain",
+    energyCost: 3,
+    effects: [
+      { kind: "attack", damage: 5 },
+      { kind: "attack", damage: 5 },
+      { kind: "attack", damage: 5 },
+      { kind: "attack", damage: 5 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+    ],
+    upgradeCost: 40,
+    description: "Deal 5 damage four times. (Excellent with Strength)",
+    upgradedDescription: "Deal 6 damage four times.",
+  },
+  {
+    baseId: "warlords-strike",
+    name: "Warlord's Strike",
+    energyCost: 2,
+    effects: [
+      { kind: "strength", amount: 2 },
+      { kind: "attack", damage: 8 },
+    ],
+    upgradedEffects: [
+      { kind: "strength", amount: 3 },
+      { kind: "attack", damage: 10 },
+    ],
+    upgradeCost: 30,
+    description: "Gain 2 Strength, then deal 8 (+2) damage.",
+    upgradedDescription: "Gain 3 Strength, then deal 10 (+3) damage.",
+  },
+  {
+    baseId: "surge",
+    name: "Surge",
+    energyCost: 1,
+    effects: [
+      { kind: "strength", amount: 1 },
+      { kind: "attack", damage: 6 },
+    ],
+    upgradedEffects: [
+      { kind: "strength", amount: 2 },
+      { kind: "attack", damage: 7 },
+    ],
+    upgradeCost: 20,
+    description: "Gain 1 Strength, then deal 6 (+1) damage.",
+    upgradedDescription: "Gain 2 Strength, then deal 7 (+2) damage.",
+  },
+  {
+    baseId: "reaper",
+    name: "Reaper",
+    energyCost: 3,
+    effects: [
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+      { kind: "attack", damage: 6 },
+      { kind: "strength", amount: 2 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 7 },
+      { kind: "attack", damage: 7 },
+      { kind: "attack", damage: 7 },
+      { kind: "strength", amount: 3 },
+    ],
+    upgradeCost: 40,
+    description: "Deal 6 damage three times, then gain 2 Strength.",
+    upgradedDescription: "Deal 7 damage three times, then gain 3 Strength.",
+  },
+  {
+    baseId: "shield-strike",
+    name: "Shield Strike",
+    energyCost: 2,
+    effects: [
+      { kind: "block", amount: 8 },
+      { kind: "attack", damage: 7 },
+    ],
+    upgradedEffects: [
+      { kind: "block", amount: 10 },
+      { kind: "attack", damage: 9 },
+    ],
+    upgradeCost: 30,
+    description: "Gain 8 block, then deal 7 damage.",
+    upgradedDescription: "Gain 10 block, then deal 9 damage.",
+  },
+  {
+    baseId: "flurry",
+    name: "Flurry",
+    energyCost: 1,
+    effects: [
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+    ],
+    upgradedEffects: [
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+      { kind: "attack", damage: 3 },
+    ],
+    upgradeCost: 30,
+    description: "Deal 3 damage 3 times.",
+    upgradedDescription: "Deal 3 damage 4 times.",
+  },
+  {
+    baseId: "lone-wolf",
+    name: "Lone Wolf",
+    energyCost: 0,
+    effects: [{ kind: "attack", damage: 14 }],
+    upgradedEffects: [{ kind: "attack", damage: 18 }],
+    upgradeCost: 35,
+    description: "Deal 14 damage. Only usable if no other command shares its question type. Can only be played once per turn.",
+    upgradedDescription: "Deal 18 damage. Only usable if no other command shares its question type. Can only be played once per turn.",
+    uniqueType: true,
+    oncePerTurn: true,
   },
 ];
 
 export function drawCommandChoices(count: number): Command[] {
   const shuffled = [...COMMAND_POOL].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length)).map(t => instantiateTemplate(t));
+  return shuffled
+    .slice(0, Math.min(count, shuffled.length))
+    .map((t) => instantiateTemplate(t));
 }

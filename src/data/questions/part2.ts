@@ -56,8 +56,8 @@ export const PART2: Part2Question[] = [
     id: "q2-08",
     type: "t2",
     sentence: "______ from being expensive, the hotel was also very noisy.",
-    answer: "Apart",
-    tip: '"Apart from" = in addition to / as well as.',
+    answer: ["Apart", "Aside"],
+    tip: '"Apart from" / "Aside from" = in addition to / as well as.',
   },
   {
     id: "q2-09",
@@ -429,8 +429,8 @@ export const PART2: Part2Question[] = [
     id: "q2-58",
     type: "t2",
     sentence: "I was amazed ______ how quickly she learned to drive.",
-    answer: "at",
-    tip: '"Amazed at/by" — adjective + preposition collocation.',
+    answer: ["at", "by"],
+    tip: '"Amazed at/by" — both prepositions are correct in this collocation.',
   },
   {
     id: "q2-59",
@@ -547,8 +547,8 @@ export const PART2: Part2Question[] = [
     id: "q2-73",
     type: "t2",
     sentence: "You ______ have told me sooner — I would have helped you.",
-    answer: "could",
-    tip: '"Could have + past participle" — criticising or expressing missed opportunity.',
+    answer: ["could", "should"],
+    tip: '"Could have" (missed opportunity) and "should have" (mild criticism) are both correct here.',
   },
   {
     id: "q2-74",
@@ -575,8 +575,8 @@ export const PART2: Part2Question[] = [
     id: "q2-77",
     type: "t2",
     sentence:
-      "She ______ have left her umbrella at the office — it was raining.",
-    answer: "might",
+      "She ______ have left her umbrella at the office — it was raining when she left.",
+    answer: ["might", "may", "could"],
     tip: '"Might have + past participle" — possibility about the past.',
   },
 
@@ -693,16 +693,16 @@ export const PART2: Part2Question[] = [
     id: "q2-92",
     type: "t2",
     sentence:
-      "I regret ______ you that your application has been unsuccessful.",
-    answer: "to inform",
-    tip: '"Regret to + infinitive" = be sorry to say now (formal announcement).',
+      "I regret ______ inform you that your application has been unsuccessful.",
+    answer: "to",
+    tip: '"Regret to + infinitive" = be sorry to announce (formal); contrast with "regret + -ing" (past regret).',
   },
   {
     id: "q2-93",
     type: "t2",
-    sentence: "He forgot ______ the oven off before leaving the house.",
-    answer: "to turn",
-    tip: '"Forget to + infinitive" = neglect to do something.',
+    sentence: "He forgot ______ turn the oven off before leaving the house.",
+    answer: "to",
+    tip: '"Forget to + infinitive" = neglect to do something (future-oriented); contrast with "forget + -ing" (memory of past action).',
   },
   {
     id: "q2-94",
@@ -756,9 +756,9 @@ export const PART2: Part2Question[] = [
     id: "q2-100",
     type: "t2",
     sentence:
-      "Not until the results were published ______ the extent of the problem clear.",
+      "Not until the results were published ______ the extent of the problem become clear.",
     answer: "did",
-    tip: '"Not until… did + subject + become" — fronted negative inversion.',
+    tip: '"Not until… did + subject + bare infinitive" — fronted negative inversion.',
   },
 
   // --- Conjunctions & discourse markers ---
@@ -1094,8 +1094,8 @@ export const PART2: Part2Question[] = [
     id: "q2-142",
     type: "t2",
     sentence: "The team worked ______ the clock to finish the project by dawn.",
-    answer: "around",
-    tip: '"Work around the clock" = work continuously without stopping.',
+    answer: ["around", "round"],
+    tip: '"Work around/round the clock" = work continuously; both spellings accepted.',
   },
   {
     id: "q2-143",
@@ -1219,8 +1219,8 @@ export const PART2: Part2Question[] = [
     type: "t2",
     sentence:
       "She left early; ______, she still missed the train by two minutes.",
-    answer: "nevertheless",
-    tip: '"Nevertheless" = in spite of that — discourse marker of contrast.',
+    answer: ["nevertheless", "nonetheless", "however"],
+    tip: '"Nevertheless", "nonetheless", and "however" all work as discourse markers of contrast here.',
   },
 
   // --- Passive with get ---
@@ -1304,9 +1304,9 @@ export const PART2: Part2Question[] = [
     id: "q2-167",
     type: "t2",
     sentence:
-      "She got her assistant ______ all the travel arrangements for the trip.",
-    answer: "to make",
-    tip: '"Get someone to + infinitive" — causative with persuasion.',
+      "She got her assistant ______ make all the travel arrangements for the trip.",
+    answer: "to",
+    tip: '"Get someone to + infinitive" — causative with persuasion/request.',
   },
   {
     id: "q2-168",
@@ -1386,9 +1386,9 @@ export const PART2: Part2Question[] = [
     id: "q2-177",
     type: "t2",
     sentence:
-      "She took an extra jumper ______ the weather turned cold in the evening.",
-    answer: "in case",
-    tip: '"In case + clause" — precaution; note: do NOT use "if" here.',
+      "Keep a copy of the email ______ you need to refer back to it.",
+    answer: "should",
+    tip: '"Should you need" = formal conditional inversion meaning "in case you need" — used for precautionary advice.',
   },
 
   // --- Reported questions & commands ---
@@ -1452,8 +1452,8 @@ export const PART2: Part2Question[] = [
     id: "q2-185",
     type: "t2",
     sentence: "He was disappointed ______ the outcome of the negotiations.",
-    answer: "with",
-    tip: '"Disappointed with/at" — adjective + preposition collocation.',
+    answer: ["with", "at", "by"],
+    tip: '"Disappointed with/at/by" — all three prepositions are acceptable in standard usage.',
   },
   {
     id: "q2-186",
@@ -1477,16 +1477,16 @@ export const PART2: Part2Question[] = [
     type: "t2",
     sentence:
       "The flat was too small. ______, it was far from the city centre.",
-    answer: "Furthermore",
-    tip: '"Furthermore" — discourse marker adding a further argument.',
+    answer: ["Furthermore", "Moreover", "Additionally"],
+    tip: '"Furthermore", "Moreover", and "Additionally" all add information to reinforce a point.',
   },
   {
     id: "q2-189",
     type: "t2",
     sentence:
-      "______ to the main course, there will also be a choice of desserts.",
-    answer: "In addition",
-    tip: '"In addition to" + noun phrase — linking addition.',
+      "______ the main course, there will also be a choice of desserts.",
+    answer: "Besides",
+    tip: '"Besides" + noun = in addition to — single-word linking preposition for addition.',
   },
 
   // --- Subjunctive in formal constructions ---
@@ -1536,17 +1536,17 @@ export const PART2: Part2Question[] = [
     id: "q2-195",
     type: "t2",
     sentence:
-      "That was ______ the worst meal I have ever had anywhere in the world.",
-    answer: "by far",
-    tip: '"By far the worst" — emphatic superlative.',
+      "She has ______ more experience than any other candidate on the shortlist.",
+    answer: "far",
+    tip: '"Far more / far better / far less" — "far" intensifies comparatives.',
   },
   {
     id: "q2-196",
     type: "t2",
     sentence:
       "She ______ to admit that she had made a mistake, which took courage.",
-    answer: "was",
-    tip: '"Was prepared to + infinitive" or here: "was willing/able" — test context points to "was brave enough" but simplest one-word answer is "was".',
+    answer: "had",
+    tip: '"Had to + infinitive" = was obliged/forced to — past necessity or obligation.',
   },
   {
     id: "q2-197",

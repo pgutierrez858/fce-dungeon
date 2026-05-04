@@ -24,9 +24,15 @@ export function PlayerHUD() {
     setSelectedItem(null);
   }
 
+  const combatOnlyTypes = ['FIRE_POTION', 'BLOCK_POTION', 'STRENGTH_POTION'] as string[];
   const isUsable = selectedItem
-    ? !(selectedItem.id === 'i11' && phase === 'combat')
+    ? selectedItem.type !== 'FAIRY' &&
+      !(combatOnlyTypes.includes(selectedItem.type) && phase !== 'combat')
     : false;
+
+  const usabilityHint = !selectedItem ? '' :
+    selectedItem.type === 'FAIRY' ? 'Passive — triggers automatically when you would die.' :
+    !isUsable ? 'Can only be used in combat.' : '';
 
   return (
     <div className={styles.hud}>
@@ -88,13 +94,15 @@ export function PlayerHUD() {
             </div>
             <p className={styles.modalEffect}>{selectedItem.effect}</p>
             <div className={styles.modalActions}>
-              <button className={styles.useBtn} onClick={handleUse} disabled={!isUsable}
-                title={!isUsable ? 'Cannot use this item here' : undefined}>
-                ✨ Use
-              </button>
+              {selectedItem.type !== 'FAIRY' && (
+                <button className={styles.useBtn} onClick={handleUse} disabled={!isUsable}
+                  title={usabilityHint || undefined}>
+                  ✨ Use
+                </button>
+              )}
               <button className={styles.dropBtn} onClick={handleDrop}>🗑 Drop</button>
             </div>
-            {!isUsable && <p className={styles.modalHint}>Cannot use outside of camp.</p>}
+            {usabilityHint && <p className={styles.modalHint}>{usabilityHint}</p>}
           </div>
         </div>
       )}

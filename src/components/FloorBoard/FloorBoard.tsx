@@ -8,6 +8,7 @@ const TILE_ICONS: Record<string, string> = {
   rest:    '🔥',
   shop:    '🏪',
   boss:    '💀',
+  event:   '❓',
 };
 
 const NODE_LABELS: Record<string, string> = {
@@ -17,6 +18,7 @@ const NODE_LABELS: Record<string, string> = {
   rest:    'Rest',
   shop:    'Shop',
   boss:    'BOSS',
+  event:   'Event',
 };
 
 const TYPE_STROKE: Record<string, string> = {
@@ -26,6 +28,7 @@ const TYPE_STROKE: Record<string, string> = {
   rest:    '#3a8aaa',
   shop:    '#5a9a4a',
   boss:    '#9b30d0',
+  event:   '#a0609a',
 };
 
 const TYPE_FILL: Record<string, string> = {
@@ -35,6 +38,7 @@ const TYPE_FILL: Record<string, string> = {
   rest:    'rgba(58,138,170,0.22)',
   shop:    'rgba(90,154,74,0.22)',
   boss:    'rgba(155,48,208,0.25)',
+  event:   'rgba(160,96,154,0.22)',
 };
 
 const SVG_W   = 760;
@@ -221,7 +225,7 @@ export function FloorBoard() {
       </svg>
 
       <div className={styles.legend}>
-        {(['monster','boss','chest','rest','shop'] as const).map(type => (
+        {(['monster','boss','chest','rest','shop','event'] as const).map(type => (
           <span key={type} className={styles.legendItem} style={{ color: TYPE_STROKE[type] }}>
             {TILE_ICONS[type]} <span>{NODE_LABELS[type]}</span>
           </span>

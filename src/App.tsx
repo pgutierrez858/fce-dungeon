@@ -5,6 +5,7 @@ import { CombatLayout } from './components/screens/CombatLayout';
 import { ShopScreen } from './components/Shop/ShopScreen';
 import { RestScreen } from './components/Rest/RestScreen';
 import { ChestScreen } from './components/Chest/ChestScreen';
+import { EventScreen } from './components/EventScreen/EventScreen';
 import { VictoryScreen } from './components/screens/VictoryScreen';
 import { DefeatScreen } from './components/screens/DefeatScreen';
 import { QuestionsScreen } from './components/QuestionsScreen/QuestionsScreen';
@@ -27,6 +28,7 @@ export function App() {
       {phase === 'shop'  && <NonCombatLayout><ShopScreen /></NonCombatLayout>}
       {phase === 'rest'  && <NonCombatLayout><RestScreen /></NonCombatLayout>}
       {phase === 'chest' && <NonCombatLayout><ChestScreen /></NonCombatLayout>}
+      {phase === 'event' && <NonCombatLayout><EventScreen /></NonCombatLayout>}
     </div>
   );
 }
